@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Ortam değişkenleri (gizli bilgiler)
+.env
+
+# Test çıktıları
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.log
+
+# k6 sonuçları (ham)
+load-tests/results/*.json
+
+# MacOS
+.DS_Store

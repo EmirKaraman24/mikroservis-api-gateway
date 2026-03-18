@@ -1,0 +1,169 @@
+version: "3.9"
+
+# ============================================================
+# Dispatcher Microservice Projesi
+# Tum sistem tek komutla kaldirilir: docker-compose up --build
+#
+# Servisler:
+#   - dispatcher     : Tek dis giris noktasi (port 8080)
+#   - auth-service   : Kimlik dogrulama servisi (ic ag)
+#   - user-service   : Kullanici yonetimi servisi (ic ag)
+#   - message-service: Mesajlasma servisi (ic ag)
+#   - mongo-auth     : Auth servisinin izole MongoDB'si
+#   - mongo-user     : User servisinin izole MongoDB'si
+#   - mongo-msg      : Message servisinin izole MongoDB'si
+#   - mongo-disp     : Dispatcher'in izole MongoDB'si
+#   - prometheus     : Metrik toplama
+#   - grafana        : Gorsellestirme paneli
+#
+# Network Isolation:
+#   Mikroservisler yalnizca ic agda (internal) calisir.
+#   Sadece Dispatcher disariya (public) port acar.
+# ============================================================
+
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true   # Dis interne kapali, sadece ic iletisim
+
+volumes:
+  mongo-auth-data:
+  mongo-user-data:
+  mongo-msg-data:
+  mongo-disp-data:
+  grafana-data:
+  prometheus-data:
+
+services:
+
+  # ── Dispatcher (API Gateway) ────────────────────────────
+  dispatcher:
+    build: ./dispatcher
+    container_name: dispatcher
+    ports:
+      - "8080:8080"          # Tek dis port
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-change-me}
+      - MONGO_URI=mongodb://mongo-disp:27017
+      - USER_SERVICE_URL=http://user-service:5001
+      - AUTH_SERVICE_URL=http://auth-service:5002
+      - MESSAGE_SERVICE_URL=http://message-service:5003
+    depends_on:
+      - auth-service
+      - user-service
+      - message-service
+      - mongo-disp
+    networks:
+      - public
+      - internal
+    restart: unless-stopped
+
+  # ── Auth Service ────────────────────────────────────────
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    expose:
+      - "5002"               # Sadece ic agda erisim
+    environment:
+      - MONGO_URI=mongodb://mongo-auth:27017
+      - JWT_SECRET=${JWT_SECRET:-change-me}
+    depends_on:
+      - mongo-auth
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ── User Service ────────────────────────────────────────
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    expose:
+      - "5001"
+    environment:
+      - MONGO_URI=mongodb://mongo-user:27017
+    depends_on:
+      - mongo-user
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ── Message Service ─────────────────────────────────────
+  message-service:
+    build: ./message-service
+    container_name: message-service
+    expose:
+      - "5003"
+    environment:
+      - MONGO_URI=mongodb://mongo-msg:27017
+    depends_on:
+      - mongo-msg
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ── MongoDB (Dispatcher) ────────────────────────────────
+  mongo-disp:
+    image: mongo:7
+    container_name: mongo-disp
+    volumes:
+      - mongo-disp-data:/data/db
+    networks:
+      - internal
+
+  # ── MongoDB (Auth) ──────────────────────────────────────
+  mongo-auth:
+    image: mongo:7
+    container_name: mongo-auth
+    volumes:
+      - mongo-auth-data:/data/db
+    networks:
+      - internal
+
+  # ── MongoDB (User) ──────────────────────────────────────
+  mongo-user:
+    image: mongo:7
+    container_name: mongo-user
+    volumes:
+      - mongo-user-data:/data/db
+    networks:
+      - internal
+
+  # ── MongoDB (Message) ───────────────────────────────────
+  mongo-msg:
+    image: mongo:7
+    container_name: mongo-msg
+    volumes:
+      - mongo-msg-data:/data/db
+    networks:
+      - internal
+
+  # ── Prometheus ──────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - public
+      - internal
+
+  # ── Grafana ─────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    depends_on:
+      - prometheus
+    networks:
+      - public
