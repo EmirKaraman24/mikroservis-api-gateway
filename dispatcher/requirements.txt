@@ -1,0 +1,12 @@
+# dispatcher/requirements.txt
+# ────────────────────────────
+# Uretim bagimliliklari
+Flask==3.0.3
+requests==2.31.0
+pymongo==4.7.2
+python-dotenv==1.0.1
+
+# Test bagimliliklari
+pytest==8.2.0
+pytest-mock==3.14.0
+responses==0.25.3
