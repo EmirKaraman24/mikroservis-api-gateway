@@ -1,12 +1,14 @@
 # dispatcher/src/router.py
 # ────────────────────────
-# Router sınıfı, gelen isteğin path/prefix bilgisine göre
-# hangi arka uç (upstream) servise yönlendirileceğini belirler.
+# TDD Green Fazi (Commit 05): test_router.py testlerini gercen tam implementasyon.
 #
-# Yönlendirme tablosu bir sözlük ile tutulur:
-#   { "/auth":    "http://auth-service:5001",
-#     "/users":   "http://user-service:5002",
-#     "/messages":"http://message-service:5003" }
+# Router sinifi, gelen istegin path/prefix bilgisine gore
+# hangi arka uc (upstream) servise yonlendirileceğini belirler.
+#
+# Yonlendirme tablosu bir sozluk ile tutulur:
+#   { "/auth":     "http://auth-service:5001",
+#     "/users":    "http://user-service:5002",
+#     "/messages": "http://message-service:5003" }
 
 from __future__ import annotations
 from typing import Optional
