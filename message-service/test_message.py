@@ -1,15 +1,23 @@
 import pytest
-# Assume app is our flask application or message repo logic that is not implemented yet
-# from app import app
+from app import app
 
-def test_send_message_fails_initially():
-    # TDD Red: test should fail
-    assert False, "Message sending logic not implemented yet (TDD Red)"
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
 
-def test_get_messages_fails_initially():
-    # TDD Red: test should fail
-    assert False, "Message retrieval logic not implemented yet (TDD Red)"
+def test_send_message(client):
+    response = client.post('/messages', json={"content": "Hello", "sender": "user1"})
+    assert response.status_code == 201
+    assert response.get_json()["message"] == "Message sent"
 
-def test_delete_message_fails_initially():
-    # TDD Red: test should fail
-    assert False, "Message deletion logic not implemented yet (TDD Red)"
+def test_get_messages(client):
+    response = client.get('/messages')
+    assert response.status_code == 200
+    assert isinstance(response.get_json(), list)
+
+def test_delete_message(client):
+    response = client.delete('/messages/1')
+    assert response.status_code == 200
+    assert response.get_json()["message"] == "Message deleted"
