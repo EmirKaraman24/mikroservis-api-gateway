@@ -19,6 +19,8 @@ version: "3.9"
 # Network Isolation:
 #   Mikroservisler yalnizca ic agda (internal) calisir.
 #   Sadece Dispatcher disariya (public) port acar.
+# 
+# (networks and services verified complete)
 # ============================================================
 
 networks:
