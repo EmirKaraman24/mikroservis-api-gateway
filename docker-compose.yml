@@ -31,6 +31,7 @@ networks:
     internal: true   # Dis interne kapali, sadece ic iletisim
 
 volumes:
+  # Isolated database volumes for each microservice
   mongo-auth-data:
   mongo-user-data:
   mongo-msg-data:
