@@ -89,6 +89,9 @@ class Dispatcher:
 
         url = self._build_url(upstream_base, path)
 
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Dispatching {method} request to {url}")
         try:
             response = requests.request(
                 method=method,
@@ -98,9 +101,12 @@ class Dispatcher:
                 params=params or {},
                 timeout=self._timeout,
             )
+            logger.info(f"Received response from {url}: {response.status_code}")
         except requests.exceptions.ConnectionError as exc:
+            logger.error(f"Connection error to {url}: {exc}")
             raise UpstreamError(503, f"Upstream baglanti hatasi: {exc}") from exc
         except requests.exceptions.Timeout as exc:
+            logger.error(f"Timeout connecting to {url}: {exc}")
             raise UpstreamError(504, f"Upstream zaman asimi: {exc}") from exc
 
         if response.status_code >= 500:
