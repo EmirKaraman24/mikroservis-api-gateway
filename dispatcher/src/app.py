@@ -23,7 +23,15 @@ logger = logging.getLogger("dispatcher-flask")
 
 # ── FLASK APP & BAGIMLILIKLARIN BASLATILMASI ──────────────────────────────
 
+from prometheus_client import make_wsgi_app
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+
 app = Flask(__name__)
+
+# Add prometheus wsgi middleware to route /metrics requests
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+    '/metrics': make_wsgi_app()
+})
 
 # TODO: Production icin os.environ'dan okunacak
 mongo_client = MongoClient("mongodb://mongo:27017/", serverSelectionTimeoutMS=2000)

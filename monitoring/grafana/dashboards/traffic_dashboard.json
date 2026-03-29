@@ -1,0 +1,15 @@
+{
+  "title": "Dispatcher Traffic Visualization",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Total Requests",
+      "targets": [
+        {
+          "expr": "rate(flask_http_request_total[1m])",
+          "legendFormat": "{{method}} {{status}}"
+        }
+      ]
+    }
+  ]
+}
