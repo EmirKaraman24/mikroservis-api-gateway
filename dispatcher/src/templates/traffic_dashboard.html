@@ -1,0 +1,792 @@
+<!-- dispatcher/src/templates/traffic_dashboard.html -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatcher — Traffic Dashboard</title>
+  <style>
+    /* ── Reset & Base ────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1117;
+      --surface:     #161b22;
+      --surface2:    #21262d;
+      --border:      #30363d;
+      --text:        #e6edf3;
+      --text-muted:  #8b949e;
+      --accent:      #58a6ff;
+      --accent2:     #3fb950;
+      --warn:        #d29922;
+      --danger:      #f85149;
+      --purple:      #bc8cff;
+      --radius:      8px;
+      --font:        'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .app { display: flex; flex-direction: column; height: 100vh; }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 16px; font-weight: 600; color: var(--text);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+      color: var(--accent2);
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 500;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--accent2); border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.85); }
+    }
+    .timestamp { color: var(--text-muted); font-size: 12px; font-family: monospace; }
+
+    /* Main content */
+    main { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── KPI Cards ───────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .kpi-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .kpi-card.blue::before   { background: linear-gradient(90deg, var(--accent), var(--purple)); }
+    .kpi-card.green::before  { background: linear-gradient(90deg, var(--accent2), #26d97f); }
+    .kpi-card.yellow::before { background: linear-gradient(90deg, var(--warn), #f0a040); }
+    .kpi-card.red::before    { background: linear-gradient(90deg, var(--danger), #ff7b72); }
+
+    .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 8px; }
+    .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+    .kpi-unit  { font-size: 14px; font-weight: 400; color: var(--text-muted); margin-left: 4px; }
+    .kpi-delta {
+      margin-top: 8px; font-size: 12px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .kpi-delta.up   { color: var(--accent2); }
+    .kpi-delta.down { color: var(--danger); }
+
+    /* ── Charts Row ─────────────────────────────────────────── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .chart-title {
+      font-size: 13px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px;
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .chart-canvas-wrap { position: relative; height: 180px; }
+    canvas { width: 100% !important; }
+
+    /* ── Service Status ─────────────────────────────────────── */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .service-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex; align-items: center; gap: 12px;
+      transition: border-color 0.2s;
+    }
+    .service-card.healthy  { border-left: 3px solid var(--accent2); }
+    .service-card.degraded { border-left: 3px solid var(--warn); }
+    .service-card.down     { border-left: 3px solid var(--danger); }
+    .service-icon {
+      font-size: 22px; width: 40px; height: 40px;
+      background: var(--surface2); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .service-info { flex: 1; }
+    .service-name  { font-size: 13px; font-weight: 600; }
+    .service-url   { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+    .service-badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500;
+    }
+    .badge-healthy  { background: rgba(63,185,80,0.15); color: var(--accent2); }
+    .badge-degraded { background: rgba(210,153,34,0.15); color: var(--warn); }
+    .badge-down     { background: rgba(248,81,73,0.15);  color: var(--danger); }
+    .service-latency { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Log Table ───────────────────────────────────────────── */
+    .log-section { display: flex; flex-direction: column; gap: 12px; }
+    .log-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .log-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .log-controls { display: flex; gap: 8px; }
+    .btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); padding: 6px 12px; border-radius: 6px;
+      font-size: 12px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .btn:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+    .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .filter-bar {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .filter-input {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); padding: 7px 12px; border-radius: 6px;
+      font-size: 12px; font-family: monospace;
+      flex: 1; min-width: 200px;
+      outline: none; transition: border-color 0.15s;
+    }
+    .filter-input:focus { border-color: var(--accent); }
+    .filter-input::placeholder { color: var(--text-muted); }
+    .method-filter {
+      display: flex; gap: 4px;
+    }
+    .method-btn {
+      padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 600;
+      border: 1px solid transparent; cursor: pointer; transition: all 0.15s;
+    }
+    .method-btn.GET    { color: var(--accent2); border-color: rgba(63,185,80,0.3); background: rgba(63,185,80,0.1); }
+    .method-btn.POST   { color: var(--accent);  border-color: rgba(88,166,255,0.3); background: rgba(88,166,255,0.1); }
+    .method-btn.DELETE { color: var(--danger);  border-color: rgba(248,81,73,0.3); background: rgba(248,81,73,0.1); }
+    .method-btn.PUT    { color: var(--warn);    border-color: rgba(210,153,34,0.3); background: rgba(210,153,34,0.1); }
+    .method-btn.active { opacity: 0.5; }
+
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--surface2); }
+    th {
+      padding: 10px 14px; text-align: left;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-muted); font-weight: 500;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 14px; font-size: 12px;
+      border-bottom: 1px solid rgba(48,54,61,0.5);
+      font-family: monospace;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .row-new td { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn {
+      from { background: rgba(88,166,255,0.08); }
+      to   { background: transparent; }
+    }
+
+    /* Method badge */
+    .method { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .method-GET    { background: rgba(63,185,80,0.2);  color: var(--accent2); }
+    .method-POST   { background: rgba(88,166,255,0.2); color: var(--accent); }
+    .method-DELETE { background: rgba(248,81,73,0.2);  color: var(--danger); }
+    .method-PUT    { background: rgba(210,153,34,0.2); color: var(--warn); }
+    .method-PATCH  { background: rgba(188,140,255,0.2);color: var(--purple); }
+
+    /* Status badge */
+    .status { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .status-2xx { background: rgba(63,185,80,0.2);  color: var(--accent2); }
+    .status-3xx { background: rgba(88,166,255,0.2); color: var(--accent); }
+    .status-4xx { background: rgba(210,153,34,0.2); color: var(--warn); }
+    .status-5xx { background: rgba(248,81,73,0.2);  color: var(--danger); }
+
+    /* Duration bar */
+    .dur-bar-wrap { display: flex; align-items: center; gap: 8px; width: 120px; }
+    .dur-bar {
+      flex: 1; height: 4px; background: var(--surface2);
+      border-radius: 2px; overflow: hidden;
+    }
+    .dur-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+    .dur-fast   { background: var(--accent2); }
+    .dur-medium { background: var(--warn); }
+    .dur-slow   { background: var(--danger); }
+    .dur-text { font-size: 11px; color: var(--text-muted); min-width: 45px; text-align: right; }
+
+    .path-cell { color: var(--text); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .service-cell { color: var(--purple); }
+    .ip-cell  { color: var(--text-muted); }
+    .ts-cell  { color: var(--text-muted); }
+
+    /* Empty state */
+    .empty-state { padding: 48px; text-align: center; color: var(--text-muted); }
+    .empty-icon  { font-size: 40px; margin-bottom: 12px; }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 8px 24px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-info { font-size: 11px; color: var(--text-muted); }
+    .perf-bar { display: flex; gap: 16px; }
+    .perf-item { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+    .perf-val  { color: var(--text); font-weight: 500; }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .charts-row { grid-template-columns: 1fr; }
+      .kpi-grid   { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .kpi-grid  { grid-template-columns: 1fr; }
+      main       { padding: 12px; }
+      header     { padding: 0 12px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <a class="logo" href="#">
+      <div class="logo-icon">⚡</div>
+      Dispatcher Traffic Dashboard
+    </a>
+    <div class="header-right">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        CANLI
+      </div>
+      <span class="timestamp" id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Toplam İstek</div>
+        <div class="kpi-value"><span id="kpi-total">0</span></div>
+        <div class="kpi-delta up" id="kpi-rps">▲ 0 req/s</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Başarı Oranı</div>
+        <div class="kpi-value"><span id="kpi-success">100</span><span class="kpi-unit">%</span></div>
+        <div class="kpi-delta up" id="kpi-2xx">▲ 0 2xx</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Ort. Gecikme</div>
+        <div class="kpi-value"><span id="kpi-avg">0</span><span class="kpi-unit">ms</span></div>
+        <div class="kpi-delta" id="kpi-p95">p95: 0 ms</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Hata Sayısı</div>
+        <div class="kpi-value"><span id="kpi-errors">0</span></div>
+        <div class="kpi-delta down" id="kpi-err-rate">0% hata oranı</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">📈 İstek Hacmi (son 60s)</div>
+        <div class="chart-canvas-wrap">
+          <canvas id="rpsChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🎯 HTTP Durum Dağılımı</div>
+        <div class="chart-canvas-wrap">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Servis Durumları -->
+    <div class="services-grid" id="services-grid">
+      <div class="service-card healthy">
+        <div class="service-icon">🔀</div>
+        <div class="service-info">
+          <div class="service-name">Dispatcher</div>
+          <div class="service-url">:8080</div>
+          <div class="service-latency" id="svc-dispatcher-lat">— ms</div>
+        </div>
+        <span class="service-badge badge-healthy" id="svc-dispatcher-badge">SAĞLIKLI</span>
+      </div>
+      <div class="service-card healthy">
+        <div class="service-icon">🔐</div>
+        <div class="service-info">
+          <div class="service-name">Auth Service</div>
+          <div class="service-url">auth-service:5001</div>
+          <div class="service-latency" id="svc-auth-lat">— ms</div>
+        </div>
+        <span class="service-badge badge-healthy" id="svc-auth-badge">SAĞLIKLI</span>
+      </div>
+      <div class="service-card healthy">
+        <div class="service-icon">👤</div>
+        <div class="service-info">
+          <div class="service-name">User Service</div>
+          <div class="service-url">user-service:5002</div>
+          <div class="service-latency" id="svc-user-lat">— ms</div>
+        </div>
+        <span class="service-badge badge-healthy" id="svc-user-badge">SAĞLIKLI</span>
+      </div>
+      <div class="service-card healthy">
+        <div class="service-icon">💬</div>
+        <div class="service-info">
+          <div class="service-name">Message Service</div>
+          <div class="service-url">message-service:5003</div>
+          <div class="service-latency" id="svc-msg-lat">— ms</div>
+        </div>
+        <span class="service-badge badge-healthy" id="svc-msg-badge">SAĞLIKLI</span>
+      </div>
+    </div>
+
+    <!-- Log Table -->
+    <div class="log-section">
+      <div class="log-header">
+        <span class="log-title">📋 Gerçek Zamanlı İstek Günlüğü</span>
+        <div class="log-controls">
+          <button class="btn active" id="btn-pause" onclick="togglePause()">⏸ Duraklat</button>
+          <button class="btn" onclick="clearLogs()">🗑 Temizle</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <input class="filter-input" id="search-input" type="text"
+               placeholder="Path, IP veya servis ara..." oninput="filterLogs()" />
+        <div class="method-filter">
+          <button class="method-btn GET"    onclick="toggleMethod('GET')">GET</button>
+          <button class="method-btn POST"   onclick="toggleMethod('POST')">POST</button>
+          <button class="method-btn PUT"    onclick="toggleMethod('PUT')">PUT</button>
+          <button class="method-btn DELETE" onclick="toggleMethod('DELETE')">DEL</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="log-table">
+          <thead>
+            <tr>
+              <th>Zaman</th>
+              <th>Metod</th>
+              <th>Path</th>
+              <th>Servis</th>
+              <th>Durum</th>
+              <th>Süre</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <tr>
+              <td colspan="7" class="empty-state">
+                <div class="empty-icon">📡</div>
+                <div>Simülasyon başlatılıyor...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <span class="footer-info">Dispatcher Microservice v1.0.0 — Muhammed Emir Karaman &amp; Nuh</span>
+    <div class="perf-bar">
+      <div class="perf-item">CPU: <span class="perf-val" id="f-cpu">—</span></div>
+      <div class="perf-item">Bellek: <span class="perf-val" id="f-mem">—</span></div>
+      <div class="perf-item">Uptime: <span class="perf-val" id="f-uptime">00:00:00</span></div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ── Inline Chart Library (mini canvas-based) ─────────────────────── -->
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+const MAX_ROWS   = 200;
+const MAX_POINTS = 60;
+
+let logs     = [];
+let paused   = false;
+let filtered = new Set();  // active method filters
+
+let totalReqs = 0, errors = 0, durations = [];
+let rpsHistory = Array(MAX_POINTS).fill(0);
+let statusCounts = { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 };
+let startTime = Date.now();
+let tickCount = 0;
+
+// ═══════════════════════════════════════════════════════════════
+//  CLOCK & UPTIME
+// ═══════════════════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR');
+
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+  const s = String(elapsed % 60).padStart(2,'0');
+  document.getElementById('f-uptime').textContent = `${h}:${m}:${s}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SIMULATED DATA GENERATOR
+// ═══════════════════════════════════════════════════════════════
+const PATHS = [
+  { p: '/users',          svc: 'user-service'    },
+  { p: '/users/42',       svc: 'user-service'    },
+  { p: '/users/17',       svc: 'user-service'    },
+  { p: '/auth/login',     svc: 'auth-service'    },
+  { p: '/auth/register',  svc: 'auth-service'    },
+  { p: '/messages',       svc: 'message-service' },
+  { p: '/messages/7',     svc: 'message-service' },
+  { p: '/health',         svc: 'dispatcher'      },
+];
+const METHODS = ['GET','GET','GET','GET','POST','POST','PUT','DELETE'];
+const IPS = ['10.0.0.1','10.0.0.2','10.0.0.7','192.168.1.5','172.17.0.3'];
+
+function randomChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function randomInt(a, b)   { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+function generateLog() {
+  const route  = randomChoice(PATHS);
+  const method = randomChoice(METHODS);
+  const ip     = randomChoice(IPS);
+  const dur    = randomInt(8, 480);
+
+  // Weighted status: mostly 2xx
+  const r = Math.random();
+  let status;
+  if      (r < 0.82) status = randomChoice([200,200,201,204]);
+  else if (r < 0.92) status = randomChoice([400,401,403,404]);
+  else if (r < 0.97) status = 302;
+  else               status = randomChoice([500,502,503]);
+
+  return {
+    ts:     new Date().toLocaleTimeString('tr-TR'),
+    method,
+    path:   route.p,
+    svc:    route.svc,
+    status,
+    dur,
+    ip,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DOM HELPERS
+// ═══════════════════════════════════════════════════════════════
+function statusClass(s) {
+  if (s < 300) return 'status-2xx';
+  if (s < 400) return 'status-3xx';
+  if (s < 500) return 'status-4xx';
+  return 'status-5xx';
+}
+
+function durClass(d) {
+  if (d < 100) return 'dur-fast';
+  if (d < 300) return 'dur-medium';
+  return 'dur-slow';
+}
+
+function buildRow(log) {
+  const dur_pct = Math.min(100, (log.dur / 500) * 100);
+  return `
+    <tr class="row-new">
+      <td class="ts-cell">${log.ts}</td>
+      <td><span class="method method-${log.method}">${log.method}</span></td>
+      <td class="path-cell" title="${log.path}">${log.path}</td>
+      <td class="service-cell">${log.svc}</td>
+      <td><span class="status ${statusClass(log.status)}">${log.status}</span></td>
+      <td>
+        <div class="dur-bar-wrap">
+          <div class="dur-bar"><div class="dur-fill ${durClass(log.dur)}" style="width:${dur_pct}%"></div></div>
+          <span class="dur-text">${log.dur} ms</span>
+        </div>
+      </td>
+      <td class="ip-cell">${log.ip}</td>
+    </tr>`;
+}
+
+function updateTable() {
+  const search  = document.getElementById('search-input').value.toLowerCase();
+  const tbody   = document.getElementById('log-body');
+
+  const visible = logs.filter(l => {
+    if (filtered.size > 0 && !filtered.has(l.method)) return false;
+    if (search && !l.path.includes(search) && !l.ip.includes(search) && !l.svc.includes(search)) return false;
+    return true;
+  });
+
+  if (visible.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="empty-icon">🔍</div><div>Eşleşen kayıt yok</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = visible.slice(0, 50).map(buildRow).join('');
+}
+
+// KPI updates
+function updateKPIs() {
+  const durs = durations.slice(-100);
+  const avg  = durs.length ? Math.round(durs.reduce((a,b)=>a+b,0)/durs.length) : 0;
+  const p95  = durs.length ? Math.round(durs.sort((a,b)=>a-b)[Math.floor(durs.length*0.95)] || 0) : 0;
+  const errRate = totalReqs > 0 ? ((errors/totalReqs)*100).toFixed(1) : '0.0';
+
+  document.getElementById('kpi-total').textContent   = totalReqs.toLocaleString('tr-TR');
+  document.getElementById('kpi-errors').textContent  = errors;
+  document.getElementById('kpi-avg').textContent     = avg;
+  document.getElementById('kpi-p95').textContent     = `p95: ${p95} ms`;
+  document.getElementById('kpi-err-rate').textContent= `${errRate}% hata oranı`;
+
+  const successRate = totalReqs > 0 ? (100 - parseFloat(errRate)).toFixed(1) : '100.0';
+  document.getElementById('kpi-success').textContent = successRate;
+
+  const rps = rpsHistory[rpsHistory.length - 1] || 0;
+  document.getElementById('kpi-rps').textContent = `▲ ${rps} req/s`;
+  document.getElementById('kpi-2xx').textContent = `▲ ${statusCounts['2xx']} 2xx`;
+
+  // Fake CPU/Mem
+  document.getElementById('f-cpu').textContent = `${randomInt(12, 38)}%`;
+  document.getElementById('f-mem').textContent = `${randomInt(210, 340)} MB`;
+}
+
+// Service latency simulation
+function updateServices() {
+  const svcs = ['dispatcher','auth','user','msg'];
+  svcs.forEach(s => {
+    const lat = randomInt(5, 120);
+    const el  = document.getElementById(`svc-${s}-lat`);
+    if (el) el.textContent = `${lat} ms`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════════════════
+const rpsCtx    = document.getElementById('rpsChart').getContext('2d');
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+
+function drawRpsChart() {
+  const canvas = rpsCtx.canvas;
+  const W = canvas.offsetWidth; const H = canvas.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  const ctx = rpsCtx;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const data = rpsHistory;
+  const max  = Math.max(...data, 1);
+  const step = W / (data.length - 1);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(48,54,61,0.8)';
+  ctx.lineWidth   = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = Math.round(H * (1 - i/4));
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0,   'rgba(88,166,255,0.35)');
+  grad.addColorStop(1,   'rgba(88,166,255,0)');
+
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = i * step;
+    const y = H - (v / max) * (H - 10) - 5;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  const lastX = (data.length - 1) * step;
+  ctx.lineTo(lastX, H); ctx.lineTo(0, H); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = i * step;
+    const y = H - (v / max) * (H - 10) - 5;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 2;
+  ctx.lineJoin = 'round'; ctx.stroke();
+}
+
+function drawStatusChart() {
+  const canvas = statusCtx.canvas;
+  const W = canvas.offsetWidth; const H = canvas.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  const ctx = statusCtx;
+  ctx.clearRect(0, 0, W, H);
+
+  const data = [
+    { label: '2xx', value: statusCounts['2xx'], color: '#3fb950' },
+    { label: '3xx', value: statusCounts['3xx'], color: '#58a6ff' },
+    { label: '4xx', value: statusCounts['4xx'], color: '#d29922' },
+    { label: '5xx', value: statusCounts['5xx'], color: '#f85149' },
+  ];
+  const total = data.reduce((a, d) => a + d.value, 0) || 1;
+
+  // Bar chart
+  const barW  = Math.floor(W / (data.length * 2));
+  const gap   = barW;
+  const startX = (W - data.length * (barW + gap)) / 2;
+
+  data.forEach((d, i) => {
+    const x      = startX + i * (barW + gap);
+    const barH   = Math.max(4, ((d.value / total) * (H - 50)));
+    const y      = H - barH - 24;
+
+    // Bar
+    ctx.fillStyle = d.color + '33';
+    ctx.fillRect(x, y, barW, barH);
+    ctx.fillStyle = d.color;
+    ctx.fillRect(x, y, barW, 3);  // top accent
+    ctx.fillRect(x, y + barH - 3, barW, 3); // bottom cap
+
+    // Label
+    ctx.fillStyle = d.color;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.label, x + barW/2, H - 8);
+
+    // Value
+    ctx.fillStyle = '#e6edf3';
+    ctx.font = '10px monospace';
+    ctx.fillText(d.value, x + barW/2, y - 4);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MAIN TICK
+// ═══════════════════════════════════════════════════════════════
+let tickRps = 0;
+
+function tick() {
+  updateClock();
+
+  if (!paused) {
+    // Generate 1-5 new log entries per tick
+    const count = randomInt(1, 5);
+    let newLogs = [];
+    for (let i = 0; i < count; i++) {
+      const log = generateLog();
+      newLogs.push(log);
+      totalReqs++;
+      tickRps++;
+      durations.push(log.dur);
+      if (durations.length > 500) durations.shift();
+
+      const s = log.status;
+      if      (s < 300) { statusCounts['2xx']++; }
+      else if (s < 400) { statusCounts['3xx']++; }
+      else if (s < 500) { statusCounts['4xx']++; errors++; }
+      else              { statusCounts['5xx']++; errors++; }
+    }
+
+    logs = [...newLogs, ...logs].slice(0, MAX_ROWS);
+    updateTable();
+    updateKPIs();
+    updateServices();
+  }
+
+  // Every second update rps history
+  tickCount++;
+  if (tickCount % 5 === 0) {   // tick every 200ms → 5 ticks = 1s
+    rpsHistory.push(tickRps);
+    if (rpsHistory.length > MAX_POINTS) rpsHistory.shift();
+    tickRps = 0;
+    drawRpsChart();
+    drawStatusChart();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════════
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('btn-pause');
+  btn.textContent = paused ? '▶ Devam Et' : '⏸ Duraklat';
+  btn.classList.toggle('active', !paused);
+}
+
+function clearLogs() {
+  logs = [];
+  updateTable();
+}
+
+function filterLogs() { updateTable(); }
+
+function toggleMethod(m) {
+  if (filtered.has(m)) filtered.delete(m);
+  else filtered.add(m);
+  filterLogs();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  START
+// ═══════════════════════════════════════════════════════════════
+setInterval(tick, 200);
+window.addEventListener('resize', () => { drawRpsChart(); drawStatusChart(); });
+</script>
+</body>
+</html>

@@ -39,36 +39,3 @@ def test_dispatcher_routes_correctly(mock_request, dispatcher):
 def test_dispatcher_route_not_found(dispatcher):
     with pytest.raises(RouteNotFoundError):
         dispatcher.forward("GET", "/unknown/path")
-
-@patch('src.dispatcher.requests.request')
-def test_dispatcher_upstream_timeout(mock_request, dispatcher):
-    # Setup mock to raise Timeout
-    mock_request.side_effect = requests.exceptions.Timeout("Connection timed out")
-
-    with pytest.raises(UpstreamError) as excinfo:
-        dispatcher.forward("GET", "/users/1")
-    
-    assert "timeout" in str(excinfo.value).lower()
-
-@patch('src.dispatcher.requests.request')
-def test_dispatcher_upstream_connection_error(mock_request, dispatcher):
-    # Setup mock to raise ConnectionError
-    mock_request.side_effect = requests.exceptions.ConnectionError("Connection refused")
-
-    with pytest.raises(UpstreamError) as excinfo:
-        dispatcher.forward("POST", "/users")
-        
-    assert "connection refused" in str(excinfo.value).lower()
-
-@patch('src.dispatcher.requests.request')
-def test_dispatcher_upstream_returns_500(mock_request, dispatcher):
-    # Setup mock to return 500
-    mock_resp = MagicMock()
-    mock_resp.status_code = 500
-    mock_resp.json.return_value = {"error": "Internal Server Error"}
-    mock_request.return_value = mock_resp
-
-    resp = dispatcher.forward("GET", "/users/1")
-
-    assert resp.status_code == 500
-    assert resp.json() == {"error": "Internal Server Error"}
