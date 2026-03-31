@@ -27,12 +27,14 @@ git clone <repo-url>
 cd dispatcher-project
 
 # 2. Ortam değişkenlerini ayarla
+# .env.example dosyasını .env olarak kopyalayın
 cp .env.example .env
 
 # 3. Tüm sistemi ayağa kaldır
 docker-compose up --build
 
-# 4. Erişim
+# 4. Erişim & Doğrulama
+#   Sistem Durumu → http://localhost:8080/health
 #   Dispatcher  → http://localhost:8080
 #   Grafana     → http://localhost:3000
 #   Prometheus  → http://localhost:9090
@@ -50,6 +52,12 @@ docker-compose up --build
 | Prometheus | 9090 | Metrik toplama |
 
 ## API Dokümantasyonu
+
+### System / Health
+
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/health` | Dispatcher ve sistem sağlık durumu kontrolü |
 
 ### Auth
 

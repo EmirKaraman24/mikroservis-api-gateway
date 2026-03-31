@@ -54,6 +54,15 @@ logger.info(f"Kayitli Rotalar: {list(routes_map.keys())}")
 
 # ── FLASK ENDPOINT (CATCH-ALL) ─────────────────────────────────────────────
 
+@app.route("/health", methods=["GET"])
+def health_check() -> Response:
+    import json
+    return Response(
+        response=json.dumps({"status": "UP", "service": "dispatcher"}),
+        status=200,
+        mimetype="application/json"
+    )
+
 @app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def proxy(path: str) -> Response:
