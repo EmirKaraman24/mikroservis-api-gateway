@@ -11,6 +11,7 @@ from pymongo import MongoClient
 from src.router import Router
 from src.dispatcher import Dispatcher, RouteNotFoundError, UpstreamError
 from src.auth_middleware import AuthMiddleware, AuthError
+from src.health import HealthChecker
 
 # ── LOGLAMA AYARLARI ────────────────────────────────────────────────────────
 
@@ -51,17 +52,43 @@ dispatcher = Dispatcher(router=router, timeout=10.0)
 logger.info("Dispatcher servisi baslatiliyor...")
 logger.info(f"Kayitli Rotalar: {list(routes_map.keys())}")
 
+# ── HEALTH CHECKER ────────────────────────────────────────────────────────
 
-# ── FLASK ENDPOINT (CATCH-ALL) ─────────────────────────────────────────────
+health_checker = HealthChecker(
+    service_urls={
+        "auth-service":    routes_map.get("/auth",     "http://auth-service:5001"),
+        "user-service":    routes_map.get("/users",    "http://user-service:5002"),
+        "message-service": routes_map.get("/messages", "http://message-service:5003"),
+    },
+    timeout=2.0,
+)
+
+
+# ── HEALTH ENDPOINT ───────────────────────────────────────────────────────
 
 @app.route("/health", methods=["GET"])
-def health_check() -> Response:
-    import json
+def health() -> Response:
+    """
+    GET /health — tüm upstream servislerin durumunu döner.
+
+    Yanıt (200 - tüm servisler ayakta):
+        {"status": "ok", "services": {"auth-service": "ok", ...}}
+
+    Yanıt (503 - en az bir servis çökmüş):
+        {"status": "degraded", "services": {"auth-service": "down", ...}}
+    """
+    import json as _json
+    result = health_checker.check()
+    http_status = 200 if result["status"] == "ok" else 503
+    logger.info(f"[health] durum={result['status']}")
     return Response(
-        response=json.dumps({"status": "UP", "service": "dispatcher"}),
-        status=200,
-        mimetype="application/json"
+        response=_json.dumps(result),
+        status=http_status,
+        mimetype="application/json",
     )
+
+
+# ── FLASK ENDPOINT (CATCH-ALL) ─────────────────────────────────────────────
 
 @app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])

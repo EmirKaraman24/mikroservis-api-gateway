@@ -1,7 +1,7 @@
 # Dispatcher Microservice Projesi
 
-Ekip: Muhammed Emir Karaman & Nuh  
-Tarih: Mart–Nisan 2026
+**Ekip:** Muhammed Emir Karaman & Nuh  
+**Tarih:** Mart–Nisan 2026 | **Teslim:** 5 Nisan 2026
 
 ## Mimari
 
@@ -27,16 +27,15 @@ git clone <repo-url>
 cd dispatcher-project
 
 # 2. Ortam değişkenlerini ayarla
-# .env.example dosyasını .env olarak kopyalayın
 cp .env.example .env
+# .env dosyasını açıp JWT_SECRET'ı değiştir
 
 # 3. Tüm sistemi ayağa kaldır
 docker-compose up --build
 
-# 4. Erişim & Doğrulama
-#   Sistem Durumu → http://localhost:8080/health
+# 4. Erişim
 #   Dispatcher  → http://localhost:8080
-#   Grafana     → http://localhost:3000
+#   Grafana     → http://localhost:3000  (admin / .env'deki GRAFANA_PASSWORD)
 #   Prometheus  → http://localhost:9090
 ```
 
@@ -53,47 +52,97 @@ docker-compose up --build
 
 ## API Dokümantasyonu
 
-### System / Health
+### Sistem
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| GET | `/health` | Dispatcher ve sistem sağlık durumu kontrolü |
+| Method | Endpoint | Auth | Açıklama |
+|--------|----------|:----:|----------|
+| GET | `/health` | ❌ | Tüm servislerin sağlık durumu |
+| GET | `/metrics` | ❌ | Prometheus metrikleri |
 
 ### Auth
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| POST | `/auth/register` | Kullanıcı kaydı |
-| POST | `/auth/login` | Giriş → JWT token |
+| Method | Endpoint | Auth | Açıklama |
+|--------|----------|:----:|----------|
+| POST | `/auth/register` | ❌ | Kullanıcı kaydı |
+| POST | `/auth/login` | ❌ | Giriş → JWT token |
 
 ### Users
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| GET | `/users` | Tüm kullanıcılar |
-| GET | `/users/{id}` | Tekil kullanıcı |
-| POST | `/users` | Yeni kullanıcı |
-| PUT | `/users/{id}` | Güncelle |
-| DELETE | `/users/{id}` | Sil |
+| Method | Endpoint | Auth | Açıklama |
+|--------|----------|:----:|----------|
+| GET | `/users` | ✅ | Tüm kullanıcılar |
+| GET | `/users/{id}` | ✅ | Tekil kullanıcı |
+| POST | `/users` | ✅ | Yeni kullanıcı |
+| PUT | `/users/{id}` | ✅ | Güncelle |
+| DELETE | `/users/{id}` | ✅ | Sil |
 
 ### Messages
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| GET | `/messages` | Tüm mesajlar |
-| POST | `/messages` | Mesaj gönder |
-| DELETE | `/messages/{id}` | Mesaj sil |
+| Method | Endpoint | Auth | Açıklama |
+|--------|----------|:----:|----------|
+| GET | `/messages` | ✅ | Tüm mesajlar |
+| POST | `/messages` | ✅ | Mesaj gönder |
+| DELETE | `/messages/{id}` | ✅ | Mesaj sil |
+
+## Authentication
+
+Korumalı (`Auth: ✅`) her endpoint'e istek atarken `Authorization` başlığı gereklidir:
+
+```
+Authorization: Bearer <token>
+```
 
 ## Testler
 
 ```bash
-# Tüm testleri çalıştır
-pytest
+# Tüm birim testlerini çalıştır
+cd dispatcher && pytest -v
 
-# Entegrasyon testleri (Docker gerekli)
-docker-compose up -d
-pytest tests/integration/
+# Message service testleri
+cd message-service && pytest -v
 
-# Yük testi
-k6 run load-tests/k6_dispatcher_test.js
+# E2E testler (dispatcher klasöründen)
+pytest ../tests/e2e/test_full_lifecycle.py -v
+
+# Yük testi (k6 gerekli: https://k6.io)
+k6 run load-tests/dispatcher_load_test.js
+
+# Tüm senaryoları çalıştır
+bash load-tests/run_scenarios.sh
+```
+
+## Ortam Değişkenleri
+
+| Değişken | Varsayılan | Açıklama |
+|---|---|---|
+| `JWT_SECRET` | `change-me-in-production` | JWT imzalama anahtarı |
+| `GRAFANA_PASSWORD` | `admin` | Grafana admin şifresi |
+| `LOG_LEVEL` | `INFO` | Log seviyesi |
+| `RATE_LIMIT_PER_MINUTE` | `100` | IP başına istek limiti |
+
+## Proje Yapısı
+
+```
+dispatcher-project/
+├── dispatcher/              # API Gateway servisi
+│   ├── src/
+│   │   ├── app.py           # Flask entrypoint
+│   │   ├── dispatcher.py    # Core routing engine
+│   │   ├── router.py        # Path prefix resolver
+│   │   ├── auth_middleware.py # JWT/token doğrulama
+│   │   ├── rate_limiter.py  # Sliding window rate limiter
+│   │   ├── health.py        # /health endpoint
+│   │   └── templates/
+│   │       └── traffic_dashboard.html
+│   └── tests/               # Birim ve entegrasyon testler
+├── auth-service/            # Kimlik doğrulama
+├── user-service/            # Kullanıcı yönetimi
+├── message-service/         # Mesajlaşma
+├── monitoring/              # Prometheus & Grafana config
+├── load-tests/              # k6 yük test senaryoları
+├── docs/                    # Mimari, diyagramlar, rapor
+├── tests/
+│   └── e2e/                 # Uçtan uca testler
+├── docker-compose.yml
+└── .env.example
 ```

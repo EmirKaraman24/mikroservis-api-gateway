@@ -4,26 +4,44 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+env/
 dist/
 build/
+*.egg
 
-# Ortam değişkenleri (gizli bilgiler)
+# Ortam değişkenleri (GİZLİ — kesinlikle commit'leme)
 .env
+*.env.local
+*.env.production
 
 # Test çıktıları
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
+*.prof
 
-# IDE
+# k6 yük testi sonuçları (ham JSON)
+load-tests/results/
+load-tests/*.json
+
+# IDE / Editor
 .vscode/
 .idea/
-
-# Docker
-*.log
-
-# k6 sonuçları (ham)
-load-tests/results/*.json
-
-# MacOS
+*.swp
+*.swo
+*~
 .DS_Store
+Thumbs.db
+
+# Docker geçici dosyalar
+*.log
+docker-compose.override.yml
+
+# Jupyter (varsa)
+.ipynb_checkpoints/
+
+# Dağıtım paketi
+*.zip
+*.tar.gz

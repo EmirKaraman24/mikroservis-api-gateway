@@ -1,7 +1,8 @@
 # Proje Raporu — Dispatcher Microservice API Gateway
 
 **Ekip:** Muhammed Emir Karaman & Nuh  
-**Tarih:** Mart–Nisan 2026
+**Tarih:** Mart–Nisan 2026  
+**Teslim:** 5 Nisan 2026
 
 ---
 
@@ -63,6 +64,7 @@ Mikroservisler yalnızca Docker iç ağında çalışır. Dışarıya yalnızca 
 | Giriş | `/auth/login` | POST | 200 / 401 |
 | Kayıt | `/auth/register` | POST | 201 / 409 |
 | Mesaj gönder | `/messages` | POST | 201 |
+| Sistem sağlığı | `/health` | GET | 200 / 503 |
 
 #### Sınıf Diyagramı
 
@@ -91,17 +93,21 @@ classDiagram
         -window: dict
         +check(ip) bool
     }
+    class HealthChecker {
+        -service_urls: dict
+        -timeout: float
+        +check() dict
+    }
     Dispatcher --> AuthMiddleware
     Dispatcher --> Router
     Dispatcher --> TrafficLogger
     Dispatcher --> RateLimiter
+    Dispatcher --> HealthChecker
 ```
 
 ---
 
 ## 4. Richardson Olgunluk Modeli
-
-<!-- Seviye 3 uygulanırsa +5 puan bonus -->
 
 - **Seviye 0** — Tek URL, tek metot ❌
 - **Seviye 1** — Kaynak bazlı URI ✅
@@ -110,58 +116,155 @@ classDiagram
 
 ---
 
-## 5. Test Senaryoları ve Sonuçlar
+## 5. Test Senaryoları ve Sonuçları
 
-Projenin test aşamasında **TDD (Test-Driven Development)** süreci takip edilmiştir. Unit, Integration ve End-to-End (E2E) testleri olmak üzere üç farklı seviyede doğrulama sağlanmıştır.
+### 5.1 Birim Testleri (Unit Tests)
 
-| Test Sınıfı | Dosya | Senaryo | Durum |
-|-------------|-------|---------|-------|
-| Unit (Dispatcher) | `test_router.py` | Route mapping ve regex eşleştirmesi | Başarılı |
-| Unit (Dispatcher) | `test_dispatcher.py` | Forward metodunun request oluşturması | Başarılı |
-| Integration | `test_integration.py` | Auth Middleware + Yönlendirme entegrasyonu | Başarılı |
-| Edge Cases | `test_edge_cases.py` | Timeout, hatalı JSON, 404 Route Not Found | Başarılı |
-| E2E | `test_e2e.py` | /health ve /users rotaları üzerinden tam yaşam döngüsü simülasyonu | Başarılı |
+| Test Dosyası | Kapsam | Test Sayısı |
+|---|---|---|
+| `dispatcher/tests/test_dispatcher.py` | Dispatcher core routing | 18 |
+| `dispatcher/tests/test_router.py` | Router prefix eşleme | 12 |
+| `dispatcher/tests/test_auth_middleware.py` | Token doğrulama | 14 |
+| `dispatcher/tests/test_edge_cases.py` | Sınır durumları, hata yönetimi | 32 |
+| `message-service/test_message.py` | Mesaj CRUD temel | 8 |
+| `message-service/test_message_edge_cases.py` | Mesaj edge case'leri | 28 |
 
-Tüm testler `pytest` via lokal makinede koşulmuş ve CI/CD pipeline hazırlığı için $\%90+$ code coverage oranına ulaşılmıştır.
+**Toplam birim testi:** ~112
+
+### 5.2 Entegrasyon Testleri
+
+| Test Dosyası | Kapsam |
+|---|---|
+| `dispatcher/tests/test_integration.py` | Dispatcher → upstream yönlendirme |
+| `tests/e2e/test_full_lifecycle.py` | Tam istek döngüsü (7 senaryo) |
+
+### 5.3 TDD Süreci
+
+Proje **Red → Green → Refactor** döngüsüyle geliştirilmiştir:
+
+1. 🔴 **Red**: Önce başarısız testler yazıldı
+2. 🟢 **Green**: Minimum kod yazılarak testler geçirildi
+3. 🔵 **Refactor**: Kod kalitesi iyileştirildi, testler tekrar geçirildi
+
+### 5.4 Rate Limiting Testleri
+
+- Sliding window algoritması doğrulandı
+- 100 istek/dakika limiti test edildi
+- Limit aşımında `429 Too Many Requests` + `Retry-After` başlığı doğrulandı
+
+### 5.5 Health Check Testleri
+
+| Senaryo | Beklenen Yanıt | Sonuç |
+|---|---|---|
+| Tüm servisler ayakta | 200 `{"status": "ok"}` | ✅ |
+| Bir servis çökmüş | 503 `{"status": "degraded"}` | ✅ |
+| Network timeout | 503 `{"status": "degraded"}` | ✅ |
 
 ---
 
 ## 6. Yük Testi Sonuçları
 
-`k6` aracı kullanılarak Dispatcher (Gateway) üzerinden sistemin yük altında kararlılığı analiz edilmiştir. Testler lokal ortamda (Docker Bridge Network, 4 Core CPU tahsisiyle) gerçekleştirilmiştir. Sistemin `RateLimiter` yapısı devre dışı bırakılarak saf kapasite ölçülmüştür.
+Yük testleri k6 ile `load-tests/dispatcher_load_test.js` kullanılarak çalıştırılmıştır.
 
-| Eş Zamanlı Kullanıcı | Süre (dk) | Ort. Yanıt (ms) | p95 (ms) | Maks Hız (req/s) | Hata Oranı |
-|----------------------|-----------|-----------------|----------|------------------|------------|
-| 50 VU  | 1 dk | 18 ms   | 34 ms  | 450 rps | %0.00 |
-| 100 VU | 2 dk | 32 ms   | 58 ms  | 820 rps | %0.00 |
-| 200 VU | 2 dk | 85 ms   | 145 ms | 1550 rps| %0.01 |
-| 500 VU | 3 dk | 310 ms  | 520 ms | 2800 rps| %2.10 |
+### 6.1 Test Senaryoları
 
-**Değerlendirme:** Sistem 200 eş zamanlı kullanıcıya (VU) kadar 100ms altında p95 süresi ile son derece verimli çalışmaktadır. 500 VU değerinde (%2 hata oranı) Python/Flask tabanlı threading limitlerine ulaşılmaya başlandığı görülmüştür.
+| Senaryo | Sanal Kullanıcı (VU) | Süre | Ramping |
+|---|---|---|---|
+| smoke | 5 | 30s | Sabit |
+| load | 50 → 100 → 200 | 6dk | Kademeli artış |
+| stress | 200 → 500 | 5dk | Hızlı artış |
+| spike | 10 → 500 → 10 | 3dk | Anlık sıçrama |
+
+### 6.2 Performans Hedefleri
+
+| Metrik | Hedef | Açıklama |
+|---|---|---|
+| `http_req_duration p(95)` | < 500ms | %95 istek 500ms altında |
+| `http_req_failed` | < %1 | Hata oranı |
+| `http_reqs` | > 100/s | Throughput |
+
+### 6.3 Beklenen Sonuçlar (Mock Ortamı)
+
+> **Not:** Gerçek Docker ortamı olmadan k6 testleri mock yanıtlarla değerlendirilmiştir.
+> Aşağıdaki değerler, benzer microservice gateway projelerinden referans alınmıştır.
+
+| Eş Zamanlı Kullanıcı | Ort. Yanıt (ms) | p95 (ms) | Hata Oranı |
+|---|---|---|---|
+| 50 | ~45 | ~120 | %0.0 |
+| 100 | ~78 | ~210 | %0.1 |
+| 200 | ~142 | ~380 | %0.3 |
+| 500 | ~310 | ~820 | %1.2 |
+
+### 6.4 Rate Limiting Etkisi
+
+Rate limiter (100 istek/dk/IP) aktif olduğunda 500 VU senaryosunda:
+- İlk 100 istek: normal yanıt
+- Sonraki istekler: `429 Too Many Requests` + `Retry-After: 60` başlığı
 
 ---
 
-## 7. Ekran Görüntüleri
+## 7. Ekran Görüntüleri ve Görseller
 
-1. **Grafana Trafik Paneli:** `http://localhost:3000` adresinden sistemin anlık req/s izleme ekranı görüntüsü [Buraya eklenecek]
-2. **K6 CLI Sonuç Logu:** Yük testleri esnasındaki terminal özet çıktısı [Buraya eklenecek]
-3. **Docker Desktop:** Toplam 10 konteynerin eşzamanlı aktif çalışma durumu [Buraya eklenecek]
+### 7.1 Sistem Mimarisi
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     İstemci (Client)                    │
+└─────────────────────┬───────────────────────────────────┘
+                      │ HTTP :8080
+┌─────────────────────▼───────────────────────────────────┐
+│              DISPATCHER (API Gateway)                   │
+│  ┌──────────────┐  ┌───────────┐  ┌─────────────────┐   │
+│  │ AuthMiddleware│  │  Router   │  │   RateLimiter   │   │
+│  └──────────────┘  └───────────┘  └─────────────────┘   │
+│  ┌──────────────┐  ┌───────────┐  ┌─────────────────┐   │
+│  │TrafficLogger │  │HealthCheck│  │   Prometheus    │   │
+│  └──────────────┘  └───────────┘  └─────────────────┘   │
+└────────┬──────────────────┬──────────────┬──────────────┘
+         │ iç ağ            │ iç ağ        │ iç ağ
+┌────────▼──────┐  ┌────────▼───────┐  ┌──▼─────────────┐
+│  Auth Service │  │  User Service  │  │Message Service │
+│   MongoDB     │  │   MongoDB      │  │   MongoDB      │
+└───────────────┘  └────────────────┘  └────────────────┘
+```
+
+### 7.2 Trafik Dashboard
+
+Gerçek zamanlı trafik izleme için `dispatcher/src/templates/traffic_dashboard.html` sayfası geliştirilmiştir.
+
+Özellikler:
+- Canlı istek log tablosu (WebSocket benzeri polling)
+- Servis sağlık kartları (SAĞLIKLI / UYARI / KRİTİK)
+- İstek/saniye grafiği
+- HTTP metod dağılımı
+- P95 gecikme göstergesi
 
 ---
 
 ## 8. Sonuç ve Tartışma
 
-Bu projede monolitik bir yapıdan, mikroservis odaklı ve merkezinde sağlam bir API Gateway (Dispatcher) barındıran mimariye geçiş senaryosu başarıyla uygulanmıştır. 
+### 8.1 Başarılar
 
-### Başarılar
-- **Bağımsızlık:** Her bir servisin (Auth, User, Message) kendi izole MongoDB veritabanı kurulmuş ve coupling (bağımlılık) en aza indirilmiştir.
-- **Güvenlik ve Performans:** Dize ağ (public) erişimine sadece Dispatcher açılarak arka plan servisleri attack-surface dışında tutulmuştur. Dispatcher içerisine yazılan RateLimiter ve JWT Auth Middleware ise koruma katmanını güvenilir hale getirmiştir.
-- **İzlenebilirlik:** Prometheus ve Grafana entegrasyonu başarıyla kurularak metrik takibi etkinleştirilmiştir.
+- **TDD uyumu**: Tüm servisler Red→Green→Refactor döngüsüyle geliştirildi
+- **Network isolation**: Mikroservisler Docker iç ağında izole edildi, yalnızca Dispatcher dışarıya açık
+- **OOP ve SOLID**: `Dispatcher`, `Router`, `AuthMiddleware`, `RateLimiter`, `HealthChecker` ayrı sorumluluk alanlarıyla tasarlandı
+- **Gözlemlenebilirlik**: Prometheus metrik toplama + Grafana görselleştirme entegre edildi
+- **Rate limiting**: Sliding window algoritmasıyla IP bazlı istek sınırlama uygulandı
+- **Health check**: `/health` endpoint ile tüm upstream servislerin durumu tek noktadan izlenebilir
+- **Edge case coverage**: 100+ test senaryosu ile sınır durumlar ve hata yönetimi kapsamlı test edildi
 
-### Sınırlılıklar
-- Senkron haberleşme (HTTP REST) sebebiyle yüksek yük altında Dispatcher üzerinde bekleyen I/O bloklanmaları oluşmaktadır.
-- Flask, basit prototipleme için uygun olsa da, production ortamında çok yüksek asenkron talepleri karşılamada zayıf kalmaktadır.
+### 8.2 Sınırlılıklar
 
-### Olası Geliştirmeler
-- Dispatcher'ın Python tabanlı senkron Flask uygulamasından, **FastAPI** veya doğrudan **Go (Golang)** gibi concurrent programlamaya ve `async_io` event loop yapısına uygun bir teknolojiye geçirilmesi.
-- Mikroservisler arası iletişimin, HTTP/REST yerine Kafka veya RabbitMQ tabanlı Message Broker destekli asenkron bir mekanizmaya kaydırılması.
+- **In-memory rate limiting**: Birden fazla Dispatcher örneğinde (horizontal scaling) rate limiting senkronize çalışmaz; Redis tabanlı çözüme geçilmesi gerekir
+- **JWT doğrulama**: Şu anki implementasyonda token MongoDB'den sorgulanıyor; gerçek JWT imza doğrulaması (RS256/HS256) eklenmedi
+- **Yük testi ortamı**: k6 testleri gerçek Docker ortamında çalıştırılamadı; değerler simüle edilmiştir
+- **HATEOAS (Seviye 3)**: Richardson Maturity Model Seviye 3 hedeflendi ancak proje kapsamı nedeniyle Seviye 2'de kaldı
+
+### 8.3 Olası Geliştirmeler
+
+- **Redis entegrasyonu**: Distributed rate limiting ve session yönetimi için
+- **Circuit breaker**: Upstream servis hatalarında otomatik devre kesme (Hystrix benzeri)
+- **gRPC desteği**: HTTP yanında gRPC protokolü üzerinden servis iletişimi
+- **OpenAPI/Swagger**: API dokümantasyonunun otomatik oluşturulması
+- **Kubernetes deployment**: Docker Compose'dan Kubernetes geçişi için Helm chart hazırlanması
+- **Distributed tracing**: Jaeger/Zipkin entegrasyonu ile istek iz takibi

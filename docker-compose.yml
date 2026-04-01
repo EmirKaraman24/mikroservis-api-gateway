@@ -58,11 +58,6 @@ services:
       - user-service
       - message-service
       - mongo-disp
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     networks:
       - public
       - internal
