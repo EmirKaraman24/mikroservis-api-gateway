@@ -46,10 +46,10 @@ services:
     build: ./dispatcher
     container_name: dispatcher
     ports:
-      - "8080:8080"          # Tek dis port
+      - "8080:5000"          # Tek dis port (Host: 8080 -> Container: 5000)
     environment:
       - JWT_SECRET=${JWT_SECRET:-change-me}
-      - MONGO_URI=mongodb://mongo-disp:27017
+      - MONGO_URI=mongodb://mongo-disp:27017/dispatcher
       - USER_SERVICE_URL=http://user-service:5001
       - AUTH_SERVICE_URL=http://auth-service:5002
       - MESSAGE_SERVICE_URL=http://message-service:5003
@@ -70,7 +70,7 @@ services:
     expose:
       - "5002"               # Sadece ic agda erisim
     environment:
-      - MONGO_URI=mongodb://mongo-auth:27017
+      - MONGO_URI=mongodb://mongo-auth:27017/auth_db
       - JWT_SECRET=${JWT_SECRET:-change-me}
     depends_on:
       - mongo-auth
@@ -85,7 +85,7 @@ services:
     expose:
       - "5001"
     environment:
-      - MONGO_URI=mongodb://mongo-user:27017
+      - MONGO_URI=mongodb://mongo-user:27017/user_db
     depends_on:
       - mongo-user
     networks:
@@ -99,7 +99,7 @@ services:
     expose:
       - "5003"
     environment:
-      - MONGO_URI=mongodb://mongo-msg:27017
+      - MONGO_URI=mongodb://mongo-msg:27017/msg_db
     depends_on:
       - mongo-msg
     networks:

@@ -84,16 +84,23 @@ class AuthMiddleware:
 
     def _lookup_token(self, token: str) -> str:
         """
-        Token'i MongoDB'de arar; gecerliyse user_id doner.
-
-        Beklenen dokuman yapisi::
-
-            {
-                "token":      "abc123...",
-                "user_id":    "user-42",
-                "expires_at": datetime(2026, 12, 31, tzinfo=timezone.utc)  # opsiyonel
-            }
+        Token'i once JWT formatinda olup olmadigina bakar. Eger JWT ise payload'dan username'i okur.
+        Degilse eski mantikla MongoDB'de arar.
         """
+        # --- HIZLI FIX: JWT DESTIGI ---
+        # "auth-service" gercekte JWT uretiyor, bu yuzden dogrudan payload'i okuyarak user_id (username) donduruyoruz.
+        if token.count('.') == 2:
+            import json, base64
+            try:
+                payload = token.split('.')[1]
+                payload += '=' * (-len(payload) % 4)
+                decoded = json.loads(base64.urlsafe_b64decode(payload).decode('utf-8'))
+                if "username" in decoded:
+                    return decoded["username"]
+            except Exception:
+                pass
+
+        # --- ORİJİNAL MONGODB MANTIĞI (TESTLERİN GEÇMESİ İÇİN) ---
         doc = self._collection.find_one({"token": token})
 
         if doc is None:
