@@ -1,7 +1,6 @@
 # dispatcher/tests/test_edge_cases.py
 # ─────────────────────────────────────────────────────────────
-# TDD Refactor Fazi (Commit 28 - Nuh): Dispatcher edge case ve
-# hata yönetimi testleri.
+# Dispatcher edge case ve hata yönetimi testleri.
 #
 # Bu dosya mevcut testlere ek olarak:
 #   - Sınır koşullarını (boundary conditions)

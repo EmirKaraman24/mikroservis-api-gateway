@@ -1,9 +1,5 @@
-# dispatcher/src/__init__.py
-# ─────────────────────────────
 # Dispatcher servisinin kaynak paketi.
 # Bu dosya, src/ klasörünü Python paketi olarak tanımlar.
-# Commit 39 (Emir) — 5 Nisan 2026: tüm testler gözden geçirildi, eksik
-# export'lar tamamlandı.
 
 from .router import Router
 from .dispatcher import Dispatcher, DispatcherError, RouteNotFoundError, UpstreamError

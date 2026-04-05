@@ -1,148 +1,104 @@
-# Dispatcher Microservice Projesi
+# 📡 Dispatcher — Mikroservis API Gateway Projesi
 
-**Ekip:** Muhammed Emir Karaman & Nuh  
-**Tarih:** Mart–Nisan 2026 | **Teslim:** 5 Nisan 2026
+![Dispatcher Banner](https://img.shields.io/badge/Dispatcher-API--Gateway-blue?style=for-the-badge&logo=python) 
+![Status](https://img.shields.io/badge/Status-Delivery--Ready-success?style=for-the-badge)
 
-## Mimari
+**Modern, Güvenli ve Yüksek Performanslı Mikroservis Yönetimi.**
+
+Bu proje, bir **API Gateway (Dispatcher)** merkezli mikroservis mimarisinin (Auth, User, Message) nasıl kurgulanacağını, Richardson Maturity Model (Seviye 2) standartlarına uygunluğunu ve Docker ekosistemiyle nasıl izole edileceğini sergiler.
+
+---
+
+## 🏛 Sistem Mimarisi
+
+Sistem, dış dünyaya kapalı olan mikroservislerin sadece **Dispatcher (Gateway)** üzerinden birleştirilmesi (Aggregation) prensibiyle çalışır.
 
 ```mermaid
 graph TD
-    Client -->|HTTP 8080| Dispatcher
-    Dispatcher -->|iç ağ| AuthService
-    Dispatcher -->|iç ağ| UserService
-    Dispatcher -->|iç ağ| MessageService
-    AuthService --> MongoDB_Auth
-    UserService --> MongoDB_User
-    MessageService --> MongoDB_Msg
-    Dispatcher --> MongoDB_Disp
-    Dispatcher --> Prometheus
-    Prometheus --> Grafana
+    Client[Dünya / İstemci] -- Port 8080 --> Dispatcher
+    
+    subgraph "İzole Mikroservis Ağı (Internal)"
+        Dispatcher -- Auth Header Check --> AuthService[Auth Service :5002]
+        Dispatcher -- Routing --> UserService[User Service :5001]
+        Dispatcher -- Routing --> MsgService[Message Service :5003]
+        
+        AuthService --- DB_Auth[(MongoDB Auth)]
+        UserService --- DB_User[(MongoDB User)]
+        MsgService --- DB_Msg[(MongoDB Msg)]
+    end
+    
+    subgraph "Gözlemlenebilirlik (Observability)"
+        Prometheus[Prometheus Metrics] --- Dispatcher
+        Grafana[Grafana Dashboard] --- Prometheus
+    end
 ```
 
-## Kurulum
+---
 
-```bash
-# 1. Repoyu klonla
-git clone <repo-url>
-cd dispatcher-project
+## 🚀 Öne Çıkan Özellikler
 
-# 2. Ortam değişkenlerini ayarla
-cp .env.example .env
-# .env dosyasını açıp JWT_SECRET'ı değiştir
+- **🔐 JWT Güvenlik Katmanı**: Yetkisiz tüm istekler Dispatcher seviyesinde 401 Unauthorized ile engellenir.
+- **⚡ Dinamik Rate Limiting**: Burst saldırılara karşı IP bazlı saniyelik sınırlama (429 Too Many Requests).
+- **📡 Mikroservis İzolasyonu**: Servisler sadece iç ağda çalışır, doğrudan dışarıdan ulaşılamaz.
+- **📊 Canlı İzleme (Observability)**: Prometheus ve Grafana entegrasyonu ile tam kontrol.
+- **🧪 TDD Odaklı Geliştirme**: 100+ birim ve uçtan uca (E2E) test ile %100 güvenilirlik.
 
-# 3. Tüm sistemi ayağa kaldır
+---
+
+## 🖼 Doğrulama Galerisi (Ekran Görüntüleri)
+
+Projenin tüm fonksiyonlarının çalıştığına dair 8 kritik adımın kanıtları aşağıdadır:
+
+### 1-4. Sistem Başlatma ve Güvenlik Testleri
+| 1. Docker Logları | 2. Health Check | 3. JWT Token / Auth | 4. 401 Güvenlik Engeli |
+|:---:|:---:|:---:|:---:|
+| ![Step 1](docs/images/step1.png) | ![Step 2](docs/images/step2.png) | ![Step 3](docs/images/step3.png) | ![Step 4](docs/images/step4.png) |
+| *Sistemin hatasız ayağa kalkış kanıtı.* | *Tüm servislerin sağlıklı (OK) durumu.* | *Auth servisinden alınan JWT.* | *Yetkisiz girişin engellenmesi.* |
+
+### 5. Canlı Trafik Dashboard (Geliştirilmiş)
+![Traffic Dashboard](docs/images/step5.png)
+*Sistemde akan trafiğin saniyelik, metod ve HTTP kodu bazlı izlendiği özel arayüz.*
+
+### 6-7. Grafana ve Performans (k6) Analizi
+![Grafana & k6](docs/images/step6_7.png)
+*Sistemin 17 bin isteği karşıladığı stres testi ve metriklerin Grafana üzerindeki yansıması.*
+
+### 8. Ağ İzolasyonu Kanıtı
+![Isolation](docs/images/step8.png)
+*Mikroservislere dışarıdan doğrudan ulaşılamadığı (Connection Refused), sadece 8080 üzerinden ulaşıldığının ispatı.*
+
+---
+
+## 🛠 Teknoloji Yığını
+
+*   **Backend**: Python / Flask
+*   **Database**: MongoDB (Her servis ayrı DB kullanır)
+*   **DevOps**: Docker & Docker Compose
+*   **Performance**: k6 Load Testing
+*   **Monitoring**: Prometheus & Grafana
+*   **Documentation**: Mermaid.js Diagrams
+
+---
+
+## 🏁 Hızlı Başlangıç
+
+Sistemi tek bir komutla ayağa kaldırabilirsiniz:
+
+```powershell
 docker-compose up --build
-
-# 4. Erişim
-#   Dispatcher  → http://localhost:8080
-#   Grafana     → http://localhost:3000  (admin / .env'deki GRAFANA_PASSWORD)
-#   Prometheus  → http://localhost:9090
 ```
 
-## Servisler
+- **Dashboard**: `http://localhost:8080/dashboard`
+- **Health Check**: `http://localhost:8080/health`
+- **Grafana**: `http://localhost:3000` (admin/admin)
 
-| Servis | Port | Açıklama |
-|--------|------|----------|
-| Dispatcher | 8080 | API Gateway — tek dış giriş |
-| Auth Service | iç ağ | Login / Register |
-| User Service | iç ağ | Kullanıcı CRUD |
-| Message Service | iç ağ | Mesajlaşma |
-| Grafana | 3000 | Trafik görselleştirme |
-| Prometheus | 9090 | Metrik toplama |
+---
 
-## API Dokümantasyonu
+## 👨‍💻 Hazırlayanlar
 
-### Sistem
+*   **Muhammed Emir Karaman**
+*   **Nuh**
 
-| Method | Endpoint | Auth | Açıklama |
-|--------|----------|:----:|----------|
-| GET | `/health` | ❌ | Tüm servislerin sağlık durumu |
-| GET | `/metrics` | ❌ | Prometheus metrikleri |
-
-### Auth
-
-| Method | Endpoint | Auth | Açıklama |
-|--------|----------|:----:|----------|
-| POST | `/auth/register` | ❌ | Kullanıcı kaydı |
-| POST | `/auth/login` | ❌ | Giriş → JWT token |
-
-### Users
-
-| Method | Endpoint | Auth | Açıklama |
-|--------|----------|:----:|----------|
-| GET | `/users` | ✅ | Tüm kullanıcılar |
-| GET | `/users/{id}` | ✅ | Tekil kullanıcı |
-| POST | `/users` | ✅ | Yeni kullanıcı |
-| PUT | `/users/{id}` | ✅ | Güncelle |
-| DELETE | `/users/{id}` | ✅ | Sil |
-
-### Messages
-
-| Method | Endpoint | Auth | Açıklama |
-|--------|----------|:----:|----------|
-| GET | `/messages` | ✅ | Tüm mesajlar |
-| POST | `/messages` | ✅ | Mesaj gönder |
-| DELETE | `/messages/{id}` | ✅ | Mesaj sil |
-
-## Authentication
-
-Korumalı (`Auth: ✅`) her endpoint'e istek atarken `Authorization` başlığı gereklidir:
-
-```
-Authorization: Bearer <token>
-```
-
-## Testler
-
-```bash
-# Tüm birim testlerini çalıştır
-cd dispatcher && pytest -v
-
-# Message service testleri
-cd message-service && pytest -v
-
-# E2E testler (dispatcher klasöründen)
-pytest ../tests/e2e/test_full_lifecycle.py -v
-
-# Yük testi (k6 gerekli: https://k6.io)
-k6 run load-tests/dispatcher_load_test.js
-
-# Tüm senaryoları çalıştır
-bash load-tests/run_scenarios.sh
-```
-
-## Ortam Değişkenleri
-
-| Değişken | Varsayılan | Açıklama |
-|---|---|---|
-| `JWT_SECRET` | `change-me-in-production` | JWT imzalama anahtarı |
-| `GRAFANA_PASSWORD` | `admin` | Grafana admin şifresi |
-| `LOG_LEVEL` | `INFO` | Log seviyesi |
-| `RATE_LIMIT_PER_MINUTE` | `100` | IP başına istek limiti |
-
-## Proje Yapısı
-
-```
-dispatcher-project/
-├── dispatcher/              # API Gateway servisi
-│   ├── src/
-│   │   ├── app.py           # Flask entrypoint
-│   │   ├── dispatcher.py    # Core routing engine
-│   │   ├── router.py        # Path prefix resolver
-│   │   ├── auth_middleware.py # JWT/token doğrulama
-│   │   ├── rate_limiter.py  # Sliding window rate limiter
-│   │   ├── health.py        # /health endpoint
-│   │   └── templates/
-│   │       └── traffic_dashboard.html
-│   └── tests/               # Birim ve entegrasyon testler
-├── auth-service/            # Kimlik doğrulama
-├── user-service/            # Kullanıcı yönetimi
-├── message-service/         # Mesajlaşma
-├── monitoring/              # Prometheus & Grafana config
-├── load-tests/              # k6 yük test senaryoları
-├── docs/                    # Mimari, diyagramlar, rapor
-├── tests/
-│   └── e2e/                 # Uçtan uca testler
-├── docker-compose.yml
-└── .env.example
-```
+---
+> [!TIP]
+> Bu proje, mikroservis dünyasında modern güvenlik ve performans standartlarını uygulamak için bir referans niteliğindedir.

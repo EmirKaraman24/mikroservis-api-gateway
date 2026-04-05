@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # scripts/verify_tests.py
 # ─────────────────────────────────────────────────────────────
-# Commit 39 (Emir) — 5 Nisan 2026
 # test: run all unit and integration tests, fix remaining failures
 #
 # Bu script projedeki tüm test paketlerini sırayla çalıştırır

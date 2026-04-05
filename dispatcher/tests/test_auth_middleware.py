@@ -1,7 +1,6 @@
 # dispatcher/tests/test_auth_middleware.py
 # ─────────────────────────────────────────
-# TDD Refactor Fazi (Commit 07 - Emir): AuthMiddleware icin birim testler.
-#
+# AuthMiddleware icin birim testler.
 # MongoDB baglantisi gerektirmeden calisabilmesi icin MongoClient,
 # MagicMock ile simule edilmistir (Dependency Injection sayesinde).
 #

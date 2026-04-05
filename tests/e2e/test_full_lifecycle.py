@@ -1,6 +1,5 @@
 # tests/e2e/test_full_lifecycle.py
 # ─────────────────────────────────────────────────────────────
-# Commit 34 (Nuh) — 3 Nisan 2026
 # test(e2e): add end-to-end test for full request lifecycle
 #
 # Bu testler, gerçek bir Docker ortamı yerine Flask test client

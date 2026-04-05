@@ -1,4 +1,4 @@
-# Message Service — Commit 16'dan itibaren doldurulacak
+# Message Service
 
 message-service/
 ├── src/

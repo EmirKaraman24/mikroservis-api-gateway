@@ -1,8 +1,5 @@
 # Sıralama Diyagramları — Dispatcher Routing Flow
 
-**Commit 29 — 1 Nisan 2026 | Emir**  
-`docs: add sequence diagrams for dispatcher routing flow (Mermaid)`
-
 ---
 
 ## 1. Başarılı İstek — Tam Akış

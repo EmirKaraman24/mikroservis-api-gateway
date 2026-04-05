@@ -1,4 +1,4 @@
-# User Service — Commit 13'ten itibaren doldurulacak
+# User Service
 
 user-service/
 ├── src/

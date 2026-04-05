@@ -1,8 +1,7 @@
 # dispatcher/src/auth_middleware.py
 # ───────────────────────────────────
-# TDD Green Fazi (Commit 06 - Nuh): Auth Middleware implementasyonu.
-#
-# AuthMiddleware, gelen her istekteki Authorization basligini dogrular.
+# Auth Middleware implementasyonu.
+# JWT/token doğrulama işlemlerini simüle eder ve MongoDB'den sorgular.
 # Token gecerliligi MongoDB (NoSQL) koleksiyonundan sorgulanir.
 #
 # Akis:

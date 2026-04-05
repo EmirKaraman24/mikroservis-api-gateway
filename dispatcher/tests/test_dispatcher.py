@@ -1,9 +1,7 @@
 # dispatcher/tests/test_dispatcher.py
 # ─────────────────────────────────────
-# TDD Red Fazi: Dispatcher sinifinin routing (yonlendirme) davranisini
-# test eden birim testleri. Bu testler Commit 03'teki iskelet sinifa karsi
-# yazilmistir; gercek implementasyon Commit 05'te (TDD Green) yapilacaktir.
-#
+# Dispatcher sinifinin routing (yonlendirme) davranisini
+# test eden birim testleri. 
 # Calistirmak icin:
 #   pytest dispatcher/tests/test_dispatcher.py -v
 

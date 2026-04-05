@@ -1,6 +1,5 @@
 # dispatcher/src/rate_limiter.py
 # ─────────────────────────────────────────────────────────────
-# Commit 32 (Nuh) — 2 Nisan 2026
 # feat(dispatcher): implement rate limiting middleware
 #
 # Sliding window algoritmasıyla IP tabanlı rate limiting.

@@ -1,16 +1,17 @@
 # dispatcher/src/app.py
 # ─────────────────────
-# TDD Green Fazi (Commit 08 - Nuh): Flask HTTP Server Entrypoint.
+# Flask HTTP Server Entrypoint.
 # Dispatcher microservice'i icin disariya acilan HTTP API.
 # Gelen tum HTTP isteklerini yakalar ve Dispatcher sinifina yonledirir.
 
 import logging
-from flask import Flask, request, Response
+from flask import Flask, request, Response, render_template
 from pymongo import MongoClient
 
 from src.router import Router
 from src.dispatcher import Dispatcher, RouteNotFoundError, UpstreamError
 from src.auth_middleware import AuthMiddleware, AuthError
+from src.rate_limiter import RateLimiter, RateLimitExceeded
 from src.health import HealthChecker
 
 # ── LOGLAMA AYARLARI ────────────────────────────────────────────────────────
@@ -45,6 +46,10 @@ routes_map = {
 
 router = Router(routes_map)
 dispatcher = Dispatcher(router=router, timeout=10.0)
+
+# ── RATE LIMITER BASLATMA ───────────────────────────────────────────────
+# Default: 100 istek / 60 saniye (IP tabanlı)
+limiter = RateLimiter(limit=100, period=60.0)
 
 logger.info("Dispatcher servisi baslatiliyor...")
 logger.info(f"Kayitli Rotalar: {list(routes_map.keys())}")
@@ -85,6 +90,16 @@ def health() -> Response:
     )
 
 
+# ── DASHBOARD ENDPOINT ────────────────────────────────────────────────────
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard() -> str:
+    """
+    Traffic flow ve log tablosunun izlenebildiği grafiksel arayüzü sunar.
+    """
+    return render_template("traffic_dashboard.html")
+
+
 # ── FLASK ENDPOINT (CATCH-ALL) ─────────────────────────────────────────────
 
 @app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
@@ -98,6 +113,19 @@ def proxy(path: str) -> Response:
     
     logger.info(f"[{request.method}] Istek alindi: {full_path}")
     
+    # 0) Rate Limiting Kontrolü (Tüm servisler için)
+    try:
+        client_ip = request.remote_addr or "127.0.0.1"
+        limiter.check_and_record(client_ip)
+        logger.info(f"Rate Limit Kontrolü: OK (IP: {client_ip})")
+    except RateLimitExceeded as e:
+        logger.warning(f"Rate Limit Aşıldı: {client_ip} (Retry After: {e.retry_after}s)")
+        return Response(
+            response=str(e), 
+            status=e.status_code,
+            headers={"Retry-After": str(e.retry_after)}
+        )
+
     # 1) Auth Middleware Kontrolu (Sadece /auth harici rotalar icin)
     if not full_path.startswith("/auth"):
         try:

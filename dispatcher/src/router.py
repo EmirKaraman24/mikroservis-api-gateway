@@ -1,9 +1,7 @@
 # dispatcher/src/router.py
 # ────────────────────────
-# TDD Green Fazi (Commit 05): test_router.py testlerini gercen tam implementasyon.
-#
-# Router sinifi, gelen istegin path/prefix bilgisine gore
-# hangi arka uc (upstream) servise yonlendirileceğini belirler.
+# Router bileşeni, API Gateway'e gelen path prefix'lerini 
+# ilgili mikroservislerin taban URL'lerine dönüştürür.
 #
 # Yonlendirme tablosu bir sozluk ile tutulur:
 #   { "/auth":     "http://auth-service:5001",

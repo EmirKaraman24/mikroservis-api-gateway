@@ -1,8 +1,5 @@
 # Sınıf Diyagramları — Tüm Mikroservisler
 
-**Commit 30 — 1 Nisan 2026 | Nuh**  
-`docs: add class diagrams for all microservices (Mermaid)`
-
 ---
 
 ## 1. Dispatcher (API Gateway) — Tam Sınıf Diyagramı
@@ -255,7 +252,7 @@ classDiagram
 
 ---
 
-## 6. RateLimiter — Sınıf Diyagramı (Commit 32 ile eklenecek)
+## 6. RateLimiter — Sınıf Diyagramı
 
 ```mermaid
 classDiagram

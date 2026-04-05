@@ -1,6 +1,5 @@
 # message-service/test_message_edge_cases.py
 # ─────────────────────────────────────────────────────────────
-# TDD Refactor Fazi (Commit 31 - Emir): Message Service edge
 # case testleri ve mevcut testlerin refactor'ı.
 #
 # Kapsam:

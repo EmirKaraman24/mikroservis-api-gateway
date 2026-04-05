@@ -1,53 +1,59 @@
 import http from 'k6/http';
-import { sleep } from 'k6';
+import { sleep, check } from 'k6';
+
+// ── SENARYO: CHAOS & BURST SALDIRISI ──────────────────────────────────────────
+// Bu script, sisteme aşırı yüklenerek hem Rate Limiting hem de hatalı giriş gibi 
+// karmaşa/saldırı durumlarını test eder.
+// Dispatcher'ın 429 Too Many Requests cevabı vermesi hedeflenir.
 
 export const options = {
   stages: [
-    { duration: '20s', target: 20 },  // Isınma: 20 kullanıcı
-    { duration: '40s', target: 150 }, // Saldırı: 150 eşzamanlı kullanıcı (Sınırları zorla)
-    { duration: '20s', target: 300 }, // Zirve: 300 kullanıcı (Stres testi)
-    { duration: '20s', target: 0 },   // Soğuma
+    { duration: '10s', target: 50  }, // Isınma: 50 kullanıcı
+    { duration: '30s', target: 200 }, // Zirve: 200 kullanıcı (Saldırı simülasyonu)
+    { duration: '10s', target: 0   }, // Soğuma
   ],
 };
 
-const BASE_URL = 'http://host.docker.internal:8080';
+const BASE_URL = __ENV.BASE_URL || 'http://host.docker.internal:8080';
 
 export default function () {
-  // Rastgele bir senaryo seç
   const scenario = Math.random();
 
-  if (scenario < 0.3) {
-    // 1. Durum: Meşru ama yoğun trafik (Health & Auth Login)
-    http.get(`${BASE_URL}/health`);
-    http.post(`${BASE_URL}/auth/login`, JSON.stringify({
-      username: "attacker",
-      password: "wrong_password"
-    }), { headers: { 'Content-Type': 'application/json' } });
-
-  } else if (scenario < 0.6) {
-    // 2. Durum: Yetkisiz erişim denemeleri (JWT yok veya hatalı)
-    const params = {
-      headers: { 'Authorization': 'Bearer hatali_token_123' },
-    };
-    http.get(`${BASE_URL}/users`, params);
-    http.get(`${BASE_URL}/messages`, params);
+  if (scenario < 0.4) {
+    // 1. Durum: Rate Limiting Hamlesi (Hammet / Burst)
+    // BEKLEME SÜRESİ YOK — Saniyeler içinde çok sayıda istek gönderir.
+    const res = http.get(`${BASE_URL}/health`);
     
-    // Auth başlığı olmadan doğrudan saldırı
-    http.get(`${BASE_URL}/users/profile/secret`);
+    check(res, {
+      'status is 200 or 429': (r) => [200, 429].includes(r.status),
+      'is rate limited (429)': (r) => r.status === 429,
+    });
+    
+    // Çok hızlı gönderim
+    sleep(0.01);
 
-  } else if (scenario < 0.8) {
-    // 3. Durum: Fuzzing / Kaynak Tüketimi (Geçersiz rotalar ve metodlar)
-    const randomPath = `/api/v1/admin/${Math.random().toString(36).substring(7)}`;
-    http.del(`${BASE_URL}${randomPath}`); // Rastgele yerlere DELETE at
-    http.patch(`${BASE_URL}/messages/bulk-delete`); // Olmayan bir yere PATCH at
+  } else if (scenario < 0.7) {
+    // 2. Durum: Yetkisiz Erişim / Hatalı Token
+    const params = {
+      headers: { 'Authorization': 'Bearer SALDIRGAN_VEYA_HATALI_TOKEN' },
+    };
+    const res = http.get(`${BASE_URL}/users`, params);
+    
+    check(res, {
+      'status is 401 (Auth failed)': (r) => r.status === 401,
+    });
+    
+    sleep(0.5);
 
   } else {
-    // 4. Durum: Büyük veri gönderimi (Memory zorlama)
-    const largeBody = JSON.stringify({ data: "A".repeat(1024 * 10) }); // 10KB veri
-    http.post(`${BASE_URL}/messages/send`, largeBody, {
-      headers: { 'Content-Type': 'application/json' }
+    // 3. Durum: Kaynak Tüketimi (Geçersiz Path'ler)
+    const randomPath = `/unknown/api/${Math.random().toString(36).substring(7)}`;
+    const res = http.get(`${BASE_URL}${randomPath}`);
+    
+    check(res, {
+      'status is 404 (Not Found)': (r) => r.status === 404,
     });
-  }
 
-  sleep(0.05); // Çok hızlı istek gönderimi
+    sleep(0.5);
+  }
 }

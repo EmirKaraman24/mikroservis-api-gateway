@@ -1,6 +1,6 @@
 # dispatcher/tests/test_router.py
 # ─────────────────────────────────
-# TDD Red Fazi: Router sinifinin prefix cozumleme davranisini
+# Router sinifinin prefix cozumleme davranisini
 # test eden birim testleri.
 #
 # Calistirmak icin:

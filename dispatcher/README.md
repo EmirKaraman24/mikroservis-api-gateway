@@ -1,7 +1,6 @@
 # Dispatcher Service
 # ─────────────────
-# Bu klasorde Dispatcher (API Gateway) servisi yasayacak.
-# Commit 03'ten itibaren dolmaya baslar.
+# Bu klasörde Dispatcher (API Gateway) servisi yer almaktadır.
 
 dispatcher/
 ├── src/

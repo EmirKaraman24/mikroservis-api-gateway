@@ -1,4 +1,4 @@
-# Auth Service — Commit 09'dan itibaren doldurulacak
+# Auth Service
 
 auth-service/
 ├── src/

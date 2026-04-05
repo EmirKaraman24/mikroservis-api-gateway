@@ -1,6 +1,5 @@
 # dispatcher/src/health.py
 # ─────────────────────────────────────────────────────────────
-# Commit 33 (Emir) — 3 Nisan 2026
 # feat(dispatcher): implement health check endpoint GET /health
 #
 # GET /health → tüm bağımlı servislerin durumunu döner.
