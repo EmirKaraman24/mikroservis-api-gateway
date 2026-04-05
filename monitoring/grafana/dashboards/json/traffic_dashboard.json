@@ -1,0 +1,301 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "title": "Toplam API \u0130stekleri",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "sum(flask_http_request_total)",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 11,
+      "title": "G\u00fcvenlik Engellemeleri (401/403 vb.)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "sum(flask_http_request_total{status=~\"4..\"})",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 12,
+      "title": "Sunucu Hatalar\u0131 (500)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "sum(flask_http_request_total{status=~\"5..\"})",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 13,
+      "title": "Sistem Uptime (Saniye)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "time() - process_start_time_seconds{job=\"dispatcher\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 14,
+      "title": "Servis Trafik Yo\u011funlu\u011fu (\u0130stek/Sn)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "rate(flask_http_request_total[1m])",
+          "legendFormat": "{{endpoint}} - {{status}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 12,
+        "y": 4
+      },
+      "id": 15,
+      "title": "HTTP Yan\u0131t (Status) Kodlar\u0131",
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "sum by (status) (flask_http_request_total)",
+          "legendFormat": "HTTP {{status}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 18,
+        "y": 4
+      },
+      "id": 16,
+      "title": "HTTP Metotlar\u0131",
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "sum by (method) (flask_http_request_total)",
+          "legendFormat": "{{method}} \u0130stekleri",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 17,
+      "title": "Dispatcher Memory Kullan\u0131m\u0131 (MB)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "prometheus",
+            "type": "prometheus"
+          },
+          "expr": "process_resident_memory_bytes{job=\"dispatcher\"} / 1024 / 1024",
+          "legendFormat": "RAM Kullan\u0131m\u0131 (MB)",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Dispatcher Genel Sistem Trafi\u011fi",
+  "uid": "dispatcher_traffic_board",
+  "version": 1
+}

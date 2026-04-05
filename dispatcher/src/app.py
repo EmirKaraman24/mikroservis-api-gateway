@@ -24,15 +24,12 @@ logger = logging.getLogger("dispatcher-flask")
 
 # ── FLASK APP & BAGIMLILIKLARIN BASLATILMASI ──────────────────────────────
 
-from prometheus_client import make_wsgi_app
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
 
 # Add prometheus wsgi middleware to route /metrics requests
-app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
-    '/metrics': make_wsgi_app()
-})
+metrics = PrometheusMetrics(app)
 
 # TODO: Production icin os.environ'dan okunacak
 mongo_client = MongoClient("mongodb://mongo-disp:27017/", serverSelectionTimeoutMS=2000)
@@ -107,16 +104,12 @@ def proxy(path: str) -> Response:
             user_id = auth.authenticate(dict(request.headers))
             logger.info(f"Authentication basarili. User: {user_id}")
             
-            # Guvenlik/Trace amaciyla user_id bilgisini upstream'e iletebilmek
-            # icin headers'a eklenebilir, simdilik standart devam ediyoruz.
-            
         except AuthError as e:
             logger.warning(f"Auth Hatasi ({e.status_code}): {str(e)}")
             return Response(response=str(e), status=e.status_code)
 
     # 2) Dispatcher üzerinden hedef servise yonlendirme
     try:
-        # Flask request nesnesinin body'sini byte olarak okuyoruz
         req_body = request.get_data()
         
         upstream_resp = dispatcher.forward(
@@ -127,9 +120,6 @@ def proxy(path: str) -> Response:
             body=req_body
         )
         
-        # 3) Upstream yanitini istemciye dondurme
-        # Chunked transfer ve content-encoding durumlarina dikkat etmemiz gerekir,
-        # simdilik basit Response donuyoruz.
         return Response(
             response=upstream_resp.content,
             status=upstream_resp.status_code,
