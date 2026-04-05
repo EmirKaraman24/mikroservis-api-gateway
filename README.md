@@ -47,25 +47,31 @@ graph TD
 
 ## 🖼 Doğrulama Galerisi (Ekran Görüntüleri)
 
-Projenin tüm fonksiyonlarının çalıştığına dair 8 kritik adımın kanıtları aşağıdadır:
+Projenin tüm fonksiyonlarının çalıştığına dair 8 ana adımın kanıtları aşağıdadır:
 
 ### 1-4. Sistem Başlatma ve Güvenlik Testleri
 | 1. Docker Logları | 2. Health Check | 3. JWT Token / Auth | 4. 401 Güvenlik Engeli |
 |:---:|:---:|:---:|:---:|
-| ![Step 1](docs/images/step1.png) | ![Step 2](docs/images/step2.png) | ![Step 3](docs/images/step3.png) | ![Step 4](docs/images/step4.png) |
+| ![Step 1](docs/images/1.png) | ![Step 2](docs/images/2.png) | ![Step 3](docs/images/3.png) | ![Step 4](docs/images/4.png) |
 | *Sistemin hatasız ayağa kalkış kanıtı.* | *Tüm servislerin sağlıklı (OK) durumu.* | *Auth servisinden alınan JWT.* | *Yetkisiz girişin engellenmesi.* |
 
-### 5. Canlı Trafik Dashboard (Geliştirilmiş)
-![Traffic Dashboard](docs/images/step5.png)
-*Sistemde akan trafiğin saniyelik, metod ve HTTP kodu bazlı izlendiği özel arayüz.*
+### 5-6. Dashboard ve İzleme Panelleri
+| 5. Trafik Dashboard | 6. Grafana Metrikleri |
+|:---:|:---:|
+| ![Step 5](docs/images/5.png) | ![Step 6](docs/images/6.png) |
+| *Geliştirilmiş özel takip ekranı.* | *Sistemin kaynak ve performans metrikleri.* |
 
-### 6-7. Grafana ve Performans (k6) Analizi
-![Grafana & k6](docs/images/step6_7.png)
-*Sistemin 17 bin isteği karşıladığı stres testi ve metriklerin Grafana üzerindeki yansıması.*
+### 7. Performans ve Stres Testleri (k6)
+| 7.1. Normal Yük Testi | 7.2. Chaos/Stres Testi |
+|:---:|:---:|
+| ![Step 7.1](docs/images/7.1.png) | ![Step 7.2](docs/images/7.2.png) |
+| *Ortalam trafiğin izlenmesi.* | *Saldırı ve aşırı yük durumundaki tepki.* |
 
 ### 8. Ağ İzolasyonu Kanıtı
-![Isolation](docs/images/step8.png)
-*Mikroservislere dışarıdan doğrudan ulaşılamadığı (Connection Refused), sadece 8080 üzerinden ulaşıldığının ispatı.*
+| 8.1. Doğrudan Erişim Engeli | 8.2. Gateway Üzerinden Erişim |
+|:---:|:---:|
+| ![Step 8.1](docs/images/8.1.png) | ![Step 8.2](docs/images/8.2.png) |
+| *Mikroservislere dışarıdan ulaşılamadığı (Connection Refused).* | *İsteğin sadece Dispatcher (8080) üzerinden geçtiğinin ispatı.* |
 
 ---
 

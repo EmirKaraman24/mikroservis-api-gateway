@@ -159,11 +159,13 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
+    user: "0"                # Windows izin sorunlarını çözmek için root olarak çalıştır
     ports:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana:/etc/grafana/provisioning
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     depends_on:
