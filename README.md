@@ -150,7 +150,7 @@ docker-compose up --build
 ## 👨‍💻 Hazırlayanlar
 
 *   **Muhammed Emir Karaman**
-*   **Nuh**
+*   **Nuh Regaib Ünsal**
 
 ---
 > [!TIP]
