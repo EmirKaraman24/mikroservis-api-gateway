@@ -96,7 +96,7 @@ class TestHealthEndpoint:
             r.status_code = 500 if "auth" in url else 200
             return r
 
-        with patch("src.health.HealthChecker._default_get", side_effect=selective_ping):
+        with patch("src.app.health_checker._get", side_effect=selective_ping):
             resp = client.get("/health")
         assert resp.status_code == 503
         data = resp.get_json()

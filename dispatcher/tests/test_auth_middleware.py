@@ -171,7 +171,7 @@ class TestExpiredToken:
     def test_naive_datetime_treated_as_utc(self):
         """timezone-naive expires_at UTC olarak yorumlanmali; gecmisteyse 403 vermeli."""
         # timezone bilgisi olmayan, gecmiste kalan tarih
-        past_naive = datetime.now() - timedelta(hours=1)
+        past_naive = datetime.utcnow() - timedelta(hours=1)
         session_doc = {
             "token": "naive-expired",
             "user_id": "user-x",
@@ -185,7 +185,8 @@ class TestExpiredToken:
 
     def test_future_naive_datetime_accepted(self):
         """timezone-naive, gelecekteki expires_at UTC olarak yorumlanmali; kabul edilmeli."""
-        future_naive = datetime.now() + timedelta(hours=24)
+        future_naive = datetime.utcnow() + timedelta(hours=24)
+
         session_doc = {
             "token": "naive-valid",
             "user_id": "user-y",

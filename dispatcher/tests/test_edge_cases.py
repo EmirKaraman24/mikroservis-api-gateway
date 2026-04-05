@@ -188,12 +188,12 @@ class TestUpstreamEdgeCases:
             assert exc_info.value.status_code == 504
 
     def test_upstream_connect_timeout(self, dispatcher: Dispatcher) -> None:
-        """Connect timeout da UpstreamError(504) olmalı."""
+        """Connect timeout da UpstreamError(503) olmalı (Connection error)."""
         with patch("src.dispatcher.requests.request",
                    side_effect=req_lib.exceptions.ConnectTimeout("Connect timed out")):
             with pytest.raises(UpstreamError) as exc_info:
                 dispatcher.forward(method="GET", path="/users")
-            assert exc_info.value.status_code == 504
+            assert exc_info.value.status_code == 503
 
     def test_upstream_error_message_contains_status(self, dispatcher: Dispatcher) -> None:
         """UpstreamError mesajı HTTP durum kodunu içermeli."""
