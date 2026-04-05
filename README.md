@@ -43,73 +43,82 @@ graph TD
 - **📊 Canlı İzleme (Observability)**: Prometheus ve Grafana entegrasyonu ile tam kontrol.
 - **🧪 TDD Odaklı Geliştirme**: 100+ birim ve uçtan uca (E2E) test ile %100 güvenilirlik.
 
+## 🚀 Adım Adım Doğrulama ve Kanıtlar
+
+Projenin tüm fonksiyonlarının çalıştığına dair teknik detaylar ve ekran görüntüleri aşağıdadır:
+
+### 1. Sistem Başlatma
+*   **Amacı:** Konteyner orkestrasyonunun hatasız çalıştığını doğrulamak.
+*   **Komut:** `docker-compose up --build`
+*   **Kanıt:**
+    ![1.png](docs/images/1.png)
+    *Sistemin tüm servisleriyle birlikte (READY) ayağa kalkış anı.*
+
 ---
 
-## 🖼 Doğrulama Galerisi (Ekran Görüntüleri)
+### 2. Sağlık Kontrolü (Health Check)
+*   **Amacı:** Dispatcher'ın tüm mikroservisleri canlı olarak takip ettiğini kanıtlamak.
+*   **URL:** `http://localhost:8080/health`
+*   **Kanıt:**
+    ![2.png](docs/images/2.png)
+    *Tüm servislerin sağlıklı (OK) olduğunu gösteren JSON çıktısı.*
 
-Projenin tüm fonksiyonlarının çalıştığına dair 8 ana adımın kanıtları aşağıdadır:
+---
 
-### 1-4. Sistem Başlatma ve Güvenlik Testleri
-| 1. Docker Logları | 2. Health Check | 3. JWT Token / Auth | 4. 401 Güvenlik Engeli |
-|:---:|:---:|:---:|:---:|
-| ![Step 1](docs/images/1.png) | ![Step 2](docs/images/2.png) | ![Step 3](docs/images/3.png) | ![Step 4](docs/images/4.png) |
-| *Sistemin hatasız ayağa kalkış kanıtı.* | *Tüm servislerin sağlıklı (OK) durumu.* | *Auth servisinden alınan JWT.* | *Yetkisiz girişin engellenmesi.* |
+### 3. Kimlik Doğrulama (JWT Auth)
+*   **Amacı:** `auth-service` üzerinden güvenli bir şekilde JWT üretildiğini doğrulamak.
+*   **Komut (PS):** `Invoke-RestMethod -Method Post -Uri "http://localhost:8080/auth/login" -ContentType "application/json" -Body '{"username":"emir","password":"sifre123"}'`
+*   **Kanıt:**
+    ![3.png](docs/images/3.png)
+    *Başarılı giriş sonrası sistemden alınan 256-bit JWT anahtarı.*
 
-### 5-6. Dashboard ve İzleme Panelleri
-| 5. Trafik Dashboard | 6. Grafana Metrikleri |
-|:---:|:---:|
-| ![Step 5](docs/images/5.png) | ![Step 6](docs/images/6.png) |
-| *Geliştirilmiş özel takip ekranı.* | *Sistemin kaynak ve performans metrikleri.* |
+---
+
+### 4. Güvenlik Bariyeri (401 Unauthorized)
+*   **Amacı:** Yetkisiz isteklerin Dispatcher seviyesinde durdurulduğunu kanıtlamak.
+*   **URL:** `http://localhost:8080/users`
+*   **Kanıt:**
+    ![4.png](docs/images/4.png)
+    *Token olmadan yapılan isteğin 401 hatasıyla reddedilmesi.*
+
+---
+
+### 5. Canlı Trafik Dashboard
+*   **Amacı:** Geliştirilen "Glassmorphism" Dashboard'un gerçek zamanlı verileri işlediğini göstermek.
+*   **URL:** `http://localhost:8080/dashboard`
+*   **Kanıt:**
+    ![5.png](docs/images/5.png)
+    *Sistemdeki anlık trafiği ve durum kodlarını gösteren özel arayüz.*
+
+---
+
+### 6. Gözlemlenebilirlik (Grafana)
+*   **Amacı:** Prometheus ve Grafana üzerinden sistem kaynaklarının izlenebildiğini doğrulamak.
+*   **URL:** `http://localhost:3000` (admin/admin)
+*   **Kanıt:**
+    ![6.png](docs/images/6.png)
+    *Grafana üzerinde görselleştirilen sistem metrikleri.*
+
+---
 
 ### 7. Performans ve Stres Testleri (k6)
-| 7.1. Normal Yük Testi | 7.2. Chaos/Stres Testi |
-|:---:|:---:|
-| ![Step 7.1](docs/images/7.1.png) | ![Step 7.2](docs/images/7.2.png) |
-| *Ortalam trafiğin izlenmesi.* | *Saldırı ve aşırı yük durumundaki tepki.* |
-
-### 8. Ağ İzolasyonu Kanıtı
-| 8.1. Doğrudan Erişim Engeli | 8.2. Gateway Üzerinden Erişim |
-|:---:|:---:|
-| ![Step 8.1](docs/images/8.1.png) | ![Step 8.2](docs/images/8.2.png) |
-| *Mikroservislere dışarıdan ulaşılamadığı (Connection Refused).* | *İsteğin sadece Dispatcher (8080) üzerinden geçtiğinin ispatı.* |
-
-## 📘 Adım Adım Doğrulama Kılavuzu
-
-Galerideki her adımın neyi kanıtladığı ve nasıl gerçekleştirileceği aşağıda detaylandırılmıştır:
-
-### 1. Sistem Başlatma (1.png)
-*   **Amaç:** Konteyner orkestrasyonunun hatasız çalıştığını doğrulamak.
-*   **Komut:** `docker-compose up --build`
-
-### 2. Sağlık Kontrolü (2.png)
-*   **Amaç:** Dispatcher'ın tüm mikroservisleri (Auth, User, Msg) canlı olarak takip ettiğini kanıtlamak.
-*   **URL:** `http://localhost:8080/health`
-
-### 3. Kimlik Doğrulama (3.png)
-*   **Amaç:** `auth-service` üzerinden JWT (JSON Web Token) üretildiğini doğrulamak.
-*   **Komut (PS):** `Invoke-RestMethod -Method Post -Uri "http://localhost:8080/auth/login" -ContentType "application/json" -Body '{"username":"emir","password":"sifre123"}'`
-
-### 4. Güvenlik Bariyeri (4.png)
-*   **Amaç:** Yetkisiz (tokensız) isteklerin Dispatcher seviyesinde 401 hatasıyla durdurulduğunu kanıtlamak.
-*   **URL:** `http://localhost:8080/users`
-
-### 5. Canlı Takip Arayüzü (5.png)
-*   **Amaç:** Geliştirilen "Glassmorphism" Dashboard'un gerçek zamanlı trafik verilerini işlediğini göstermek.
-*   **URL:** `http://localhost:8080/dashboard`
-
-### 6. Performans Metrikleri (6.png)
-*   **Amaç:** Prometheus ve Grafana üzerinden sistem kaynaklarının (CPU/RAM) izlenebildiğini doğrulamak.
-*   **URL:** `http://localhost:3000` (admin/admin)
-
-### 7. Yük ve Stres Testleri (7.1 & 7.2.png)
-*   **Amaç:** Sistemin stabilite sınırlarını ve Rate Limiter'ın (429 hatası) saldırılara karşı tepkisini ölçmek.
+*   **Amacı:** Sistemin yük altındaki stabilitesini ve Rate Limiter (429) tepkisini ölçmek.
 *   **Komut (PS):** `Get-Content "Desktop/Project/scripts/load.js" | docker run --rm -i grafana/k6 run -`
 
-### 8. Ağ İzolasyonu (8.1 & 8.2.png)
-*   **Amaç:** Servislerin dışarıdan erişilemez (8.1) olduğunu, sadece Gateway (8.2) üzerinden ulaşılabildiğini kanıtlamak.
-*   **Test:** `http://localhost:5001/health` (Başarısız) vs `http://localhost:8080/health` (Başarılı)
+| 7.1. Normal Yük (load.js) | 7.2. Chaos/Stres (chaos.js) |
+|:---:|:---:|
+| ![7.1.png](docs/images/7.1.png) | ![7.2.png](docs/images/7.2.png) |
+| *50 kullanıcı altındaki stabilite.* | *Aşırı yükte devreye giren 429 kısıtlaması.* |
 
 ---
+
+### 8. Ağ İzolasyonu ve Yönlendirme
+*   **Amacı:** Servislerin izole olduğunu ve sadece Gateway üzerinden erişilebildiğini kanıtlamak.
+
+| 8.1. Doğrudan Erişim (Engellendi) | 8.2. Gateway Erişimi (Başarılı) |
+|:---:|:---:|
+| ![8.1.png](docs/images/8.1.png) | ![8.2.png](docs/images/8.2.png) |
+| *Mikroservise direkt ulaşım reddi.* | *8080 üzerinden yönlendirilen trafik.* |
 
 ---
 
