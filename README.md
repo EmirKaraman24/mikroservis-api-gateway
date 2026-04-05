@@ -73,6 +73,44 @@ Projenin tüm fonksiyonlarının çalıştığına dair 8 ana adımın kanıtlar
 | ![Step 8.1](docs/images/8.1.png) | ![Step 8.2](docs/images/8.2.png) |
 | *Mikroservislere dışarıdan ulaşılamadığı (Connection Refused).* | *İsteğin sadece Dispatcher (8080) üzerinden geçtiğinin ispatı.* |
 
+## 📘 Adım Adım Doğrulama Kılavuzu
+
+Galerideki her adımın neyi kanıtladığı ve nasıl gerçekleştirileceği aşağıda detaylandırılmıştır:
+
+### 1. Sistem Başlatma (1.png)
+*   **Amaç:** Konteyner orkestrasyonunun hatasız çalıştığını doğrulamak.
+*   **Komut:** `docker-compose up --build`
+
+### 2. Sağlık Kontrolü (2.png)
+*   **Amaç:** Dispatcher'ın tüm mikroservisleri (Auth, User, Msg) canlı olarak takip ettiğini kanıtlamak.
+*   **URL:** `http://localhost:8080/health`
+
+### 3. Kimlik Doğrulama (3.png)
+*   **Amaç:** `auth-service` üzerinden JWT (JSON Web Token) üretildiğini doğrulamak.
+*   **Komut (PS):** `Invoke-RestMethod -Method Post -Uri "http://localhost:8080/auth/login" -ContentType "application/json" -Body '{"username":"emir","password":"sifre123"}'`
+
+### 4. Güvenlik Bariyeri (4.png)
+*   **Amaç:** Yetkisiz (tokensız) isteklerin Dispatcher seviyesinde 401 hatasıyla durdurulduğunu kanıtlamak.
+*   **URL:** `http://localhost:8080/users`
+
+### 5. Canlı Takip Arayüzü (5.png)
+*   **Amaç:** Geliştirilen "Glassmorphism" Dashboard'un gerçek zamanlı trafik verilerini işlediğini göstermek.
+*   **URL:** `http://localhost:8080/dashboard`
+
+### 6. Performans Metrikleri (6.png)
+*   **Amaç:** Prometheus ve Grafana üzerinden sistem kaynaklarının (CPU/RAM) izlenebildiğini doğrulamak.
+*   **URL:** `http://localhost:3000` (admin/admin)
+
+### 7. Yük ve Stres Testleri (7.1 & 7.2.png)
+*   **Amaç:** Sistemin stabilite sınırlarını ve Rate Limiter'ın (429 hatası) saldırılara karşı tepkisini ölçmek.
+*   **Komut (PS):** `Get-Content "Desktop/Project/scripts/load.js" | docker run --rm -i grafana/k6 run -`
+
+### 8. Ağ İzolasyonu (8.1 & 8.2.png)
+*   **Amaç:** Servislerin dışarıdan erişilemez (8.1) olduğunu, sadece Gateway (8.2) üzerinden ulaşılabildiğini kanıtlamak.
+*   **Test:** `http://localhost:5001/health` (Başarısız) vs `http://localhost:8080/health` (Başarılı)
+
+---
+
 ---
 
 ## 🛠 Teknoloji Yığını
