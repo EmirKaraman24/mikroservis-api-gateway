@@ -17,9 +17,9 @@ COPY src/ ./src/
 # Flask uygulamasi icin cevre degiskenleri
 ENV FLASK_APP=src/app.py
 ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=5000
+ENV FLASK_RUN_PORT=8080
 ENV PYTHONUNBUFFERED=1
 
 # Uygulamayi calistir
-EXPOSE 5000
+EXPOSE 8080
 CMD ["flask", "run"]

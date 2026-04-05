@@ -20,8 +20,8 @@ class Router:
     def __init__(self, routes: Optional[dict] = None) -> None:
         # Varsayilan rotalar; disaridan da gecirilebilir (test kolayligi icin)
         self._routes: dict[str, str] = routes or {
-            "/auth": "http://auth-service:5001",
-            "/users": "http://user-service:5002",
+            "/auth": "http://auth-service:5002",
+            "/users": "http://user-service:5001",
             "/messages": "http://message-service:5003",
         }
 

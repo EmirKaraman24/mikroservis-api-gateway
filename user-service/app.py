@@ -4,6 +4,10 @@ from repository import UserRepository
 app = Flask(__name__)
 repo = UserRepository()
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
 @app.route('/users', methods=['POST'])
 def create_user():
     data = request.json

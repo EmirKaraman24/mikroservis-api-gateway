@@ -5,7 +5,6 @@
 # Gelen tum HTTP isteklerini yakalar ve Dispatcher sinifina yonledirir.
 
 import logging
-import os
 from flask import Flask, request, Response
 from pymongo import MongoClient
 
@@ -35,18 +34,16 @@ app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
     '/metrics': make_wsgi_app()
 })
 
-# Production icin os.environ'dan okunacak
-mongo_client = MongoClient(os.environ.get("MONGO_URI", "mongodb://mongo-disp:27017/"), serverSelectionTimeoutMS=2000)
+# TODO: Production icin os.environ'dan okunacak
+mongo_client = MongoClient("mongodb://mongo-disp:27017/", serverSelectionTimeoutMS=2000)
 
 auth = AuthMiddleware(mongo_client=mongo_client, db_name="dispatcher")
 
-import os
-
-# Production icin os.environ'dan okunacak
+# Basit demo rotalari - Servisler hazir oldugunda gercek adreslerle degistirilecek
 routes_map = {
-    "/auth":     os.environ.get("AUTH_SERVICE_URL", "http://auth-service:5002"),
-    "/users":    os.environ.get("USER_SERVICE_URL", "http://user-service:5001"),
-    "/messages": os.environ.get("MESSAGE_SERVICE_URL", "http://message-service:5003"),
+    "/auth":     "http://auth-service:5002",
+    "/users":    "http://user-service:5001",
+    "/messages": "http://message-service:5003",
 }
 
 router = Router(routes_map)
@@ -59,9 +56,9 @@ logger.info(f"Kayitli Rotalar: {list(routes_map.keys())}")
 
 health_checker = HealthChecker(
     service_urls={
-        "auth-service":    routes_map["/auth"],
-        "user-service":    routes_map["/users"],
-        "message-service": routes_map["/messages"],
+        "auth-service":    routes_map.get("/auth",     "http://auth-service:5001"),
+        "user-service":    routes_map.get("/users",    "http://user-service:5002"),
+        "message-service": routes_map.get("/messages", "http://message-service:5003"),
     },
     timeout=2.0,
 )
@@ -91,17 +88,9 @@ def health() -> Response:
     )
 
 
-@app.route("/", methods=["GET"])
-def index() -> Response:
-    import json as _json
-    return Response(
-        response=_json.dumps({"message": "Dispatcher API Gateway is active!", "status": "running", "tip": "Bu bir backend API'dir. Rotalar icin token kullanin."}),
-        status=200,
-        mimetype="application/json"
-    )
-
 # ── FLASK ENDPOINT (CATCH-ALL) ─────────────────────────────────────────────
 
+@app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def proxy(path: str) -> Response:
     """
